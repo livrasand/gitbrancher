@@ -5,7 +5,7 @@ CLI para crear ramas Git con nombres estandarizados según el flujo de trabajo.
 ## Instalación
 
 ```bash
-npm install -g gitbrancher
+npm i @livrasand/gitbrancher
 ```
 
 ## Uso rápido

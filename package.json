@@ -1,6 +1,6 @@
 {
   "name": "@livrasand/gitbrancher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI para crear ramas Git con nombres estandarizados según el flujo de trabajo.",
   "bin": {
     "gitbrancher": "./bin/gitbrancher.js"
