@@ -1,0 +1,48 @@
+{
+  "name": "@livrasand/gitbrancher",
+  "version": "1.0.0",
+  "description": "CLI para crear ramas Git con nombres estandarizados según el flujo de trabajo.",
+  "bin": {
+    "gitbrancher": "./bin/gitbrancher.js"
+  },
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node ./bin/gitbrancher.js",
+    "help": "node ./bin/gitbrancher.js help",
+    "test": "echo 'Aún no hay pruebas definidas' && exit 0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "git",
+    "git branch cli",
+    "git workflow",
+    "git flow",
+    "branch naming",
+    "dev tools",
+    "azure devops"
+  ],
+  "author": "Livrädo Sandoval",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/livrasand/gitbrancher.git"
+  },
+  "bugs": {
+    "url": "https://github.com/livrasand/gitbrancher/issues"
+  },
+  "homepage": "https://github.com/livrasand/gitbrancher#readme",
+  "dependencies": {
+    "axios": "^1.6.8",
+    "boxen": "^6.2.1",
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "configstore": "^6.0.0",
+    "dotenv": "^16.3.1",
+    "figlet": "^1.7.0",
+    "inquirer": "^9.2.12",
+    "simple-git": "^3.23.0"
+  }
+}

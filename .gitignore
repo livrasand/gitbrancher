@@ -1,0 +1,18 @@
+# Dependencias instaladas localmente
+node_modules/
+
+# Configuración sensible de GitBrancher
+.gitbrancherrc
+.gitbrancherrc.*
+
+# Archivos de variables de entorno
+.env
+.env.*
+*.env
+*.env.*
+
+# Volcados de Configstore
+configstore.json
+configstore-*.json
+configstore/
+*.configstore.json
