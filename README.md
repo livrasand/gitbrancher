@@ -1,8 +1,15 @@
-# GitBrancher
-
-CLI para crear ramas Git con nombres estandarizados según el flujo de trabajo.
-
-[![NPM](https://nodei.co/npm/@livrasand/gitbrancher.svg?data=d,s)](https://nodei.co/npm/@livrasand/gitbrancher/)
+<p align="center">
+  <img width="446" height="128" alt="ascii-art-text" src="https://github.com/user-attachments/assets/068918c1-00c4-4613-b451-069a836f4a0d" />
+  <br />
+  <a href="https://nodei.co/npm/@livrasand/gitbrancher/">
+    <img src="https://nodei.co/npm/@livrasand/gitbrancher.svg?data=d,s" alt="NPM">
+  </a>
+  <br />
+  <img
+    src="https://img.shields.io/npm/d18m/%40livrasand%2Fgitbrancher?logo=npm&color=red"
+    alt="NPM Downloads"
+  />
+</p>
 
 ## Instalación
 
