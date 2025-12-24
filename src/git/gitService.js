@@ -27,12 +27,40 @@ async function getGitUserName() {
 }
 
 /**
+ * Verifica si una rama existe en el repositorio remoto.
+ * @param {string} branchName - Nombre de la rama a verificar.
+ * @returns {Promise<boolean>} true si la rama existe en el remoto, false en caso contrario.
+ */
+async function checkRemoteBranchExists(branchName) {
+  if (!branchName || !branchName.trim()) {
+    return false;
+  }
+
+  const git = createGitClient();
+
+  try {
+    // Obtener lista de ramas remotas
+    const remoteBranches = await git.branch(['-r']);
+
+    // Verificar si existe la rama en origin
+    const remoteBranchName = `origin/${branchName}`;
+    return remoteBranches.all.includes(remoteBranchName);
+  } catch (error) {
+    // Si hay error al obtener ramas remotas (ej: sin conexión), retornar false
+    // para no bloquear la creación de la rama local
+    return false;
+  }
+}
+
+/**
  * Verifica la existencia de una rama local con el nombre indicado y la crea si no existe.
  * @param {string} branchName - Nombre completo de la rama a crear.
+ * @param {Object} options - Opciones de validación.
+ * @param {boolean} options.checkRemote - Si debe validar contra ramas remotas (default: true).
  * @returns {Promise<void>} Una promesa que se resuelve cuando la rama ha sido creada y checkout realizada.
  * @throws {Error} Cuando la rama ya existe o Git devuelve un error.
  */
-async function createBranch(branchName) {
+async function createBranch(branchName, options = { checkRemote: true }) {
   if (!branchName || !branchName.trim()) {
     throw new Error('El nombre de la rama no puede estar vacío.');
   }
@@ -46,8 +74,23 @@ async function createBranch(branchName) {
       throw new Error(`La rama "${branchName}" ya existe en el repositorio local.`);
     }
 
+    // Validar contra ramas remotas si está habilitado
+    if (options.checkRemote) {
+      const existsInRemote = await checkRemoteBranchExists(branchName);
+      if (existsInRemote) {
+        throw new Error(
+          `La rama "${branchName}" ya existe en el repositorio remoto. ` +
+          'Usa un nombre diferente o sincroniza con "git fetch".'
+        );
+      }
+    }
+
     await git.checkoutLocalBranch(branchName);
   } catch (error) {
+    // Re-lanzar errores personalizados tal cual
+    if (error.message.includes('ya existe')) {
+      throw error;
+    }
     throw new Error(`No fue posible crear la rama "${branchName}": ${error.message}`);
   }
 }
@@ -96,4 +139,5 @@ module.exports = {
   createBranch,
   getCurrentBranch,
   pushBranch,
+  checkRemoteBranchExists,
 };
