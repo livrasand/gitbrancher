@@ -12,6 +12,7 @@ const { printHelp } = require('../src/cli/commands/helpCommand');
 const { printBranchInfo } = require('../src/cli/commands/infoCommand');
 const { resolveUserAlias, setStoredAlias, clearStoredAlias, getStoredAlias } = require('../src/config/userConfig');
 const { getEffectiveAzureConfig, setAzureConfig, clearAzureConfig, hasAzureCredentials } = require('../src/config/azureConfig');
+const { listPullRequests } = require('../src/cli/commands/prListCommand');
 
 const program = new Command();
 
@@ -197,6 +198,20 @@ program
   .action(() => {
     printBanner();
     printHelp(program);
+  });
+
+const prCommand = program
+  .command('pr')
+  .description('Comandos relacionados con Pull Requests');
+
+prCommand
+  .command('list')
+  .description('Lista los Pull Requests del repositorio')
+  .option('-s, --status <status>', 'Estado de PRs (active, completed, all)', 'active')
+  .option('-n, --number <number>', 'Número de PRs a mostrar', '20')
+  .action(async (options) => {
+    printBanner();
+    await listPullRequests(options);
   });
 
 if (!process.argv.slice(2).length) {

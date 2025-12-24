@@ -50,13 +50,17 @@ function validatePAT(pat) {
  * @param {Object} params - Parámetros a validar
  * @throws {AzureDevOpsError} Si algún parámetro es inválido
  */
-function validateParameters({ organization, project, pat, top }) {
+function validateParameters({ organization, project, pat, top, repository = null }) {
   if (!organization || typeof organization !== 'string' || organization.trim().length === 0) {
     throw new AzureDevOpsError('La organización debe ser una cadena de texto válida', null, null, false);
   }
 
   if (!project || typeof project !== 'string' || project.trim().length === 0) {
     throw new AzureDevOpsError('El proyecto debe ser una cadena de texto válida', null, null, false);
+  }
+
+  if (repository !== null && (!repository || typeof repository !== 'string' || repository.trim().length === 0)) {
+    throw new AzureDevOpsError('El repositorio debe ser una cadena de texto válida', null, null, false);
   }
 
   validatePAT(pat);
@@ -410,6 +414,45 @@ ORDER BY [System.ChangedDate] DESC`,
 }
 
 /**
+ * Obtiene los Pull Requests de un repositorio en Azure DevOps
+ */
+async function fetchPullRequests({
+  organization,
+  project,
+  repository,
+  pat,
+  status = 'active', // 'active', 'completed', 'abandoned', 'all'
+  top = 20
+}) {
+  validateParameters({ organization, project, repository, pat, top });
+
+  const client = createAzureClient({ organization, pat });
+  
+  const response = await client.get(
+    `/${encodeURIComponent(project)}/_apis/git/repositories/${encodeURIComponent(repository)}/pullrequests`,
+    {
+      params: {
+        'api-version': '7.0',
+        'searchCriteria.status': status,
+        '$top': top
+      }
+    }
+  );
+
+  return response.data.value.map(pr => ({
+    id: pr.pullRequestId,
+    title: pr.title,
+    status: pr.status,
+    createdBy: pr.createdBy.displayName,
+    creationDate: pr.creationDate,
+    sourceRefName: pr.sourceRefName.replace('refs/heads/', ''),
+    targetRefName: pr.targetRefName.replace('refs/heads/', ''),
+    url: pr.url,
+    description: pr.description
+  }));
+}
+
+/**
  * Deduce el tipo de rama a partir del tipo de work item en Azure DevOps.
  * @param {Object} workItem - Work item con la propiedad workItemType.
  * @returns {string} Prefijo de rama sugerido.
@@ -445,6 +488,7 @@ function inferBranchTypeFromWorkItem(workItem) {
 
 module.exports = {
   fetchAssignedWorkItems,
+  fetchPullRequests,
   inferBranchTypeFromWorkItem,
   AzureDevOpsError, // Exportar para uso en tests
 };

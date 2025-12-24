@@ -15,6 +15,7 @@ function printHelp(program) {
     `${chalk.bold('Comandos disponibles:')}`,
     `  ${chalk.green('gitbrancher new')} ${chalk.gray('→ Crea una nueva rama con flujo interactivo')}`,
     `  ${chalk.green('gitbrancher list-types')} ${chalk.gray('→ Muestra los tipos de ramas soportados')}`,
+    `  ${chalk.green('gitbrancher pr list')} ${chalk.gray('→ Lista los Pull Requests del repositorio')}`,
     `  ${chalk.green('gitbrancher help')} ${chalk.gray('→ Despliega este panel de ayuda')}`,
     '',
     `${chalk.bold('Ejemplo:')}`,
