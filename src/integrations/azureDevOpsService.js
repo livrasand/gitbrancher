@@ -453,6 +453,109 @@ async function fetchPullRequests({
 }
 
 /**
+ * Obtiene los detalles completos de un Pull Request incluyendo los archivos modificados
+ */
+async function fetchPullRequestDetails({
+  organization,
+  project,
+  repository,
+  pat,
+  pullRequestId
+}) {
+  validateParameters({ organization, project, repository, pat });
+
+  const client = createAzureClient({ organization, pat });
+  
+  // Obtener detalles básicos del PR
+  const prResponse = await client.get(
+    `/${encodeURIComponent(project)}/_apis/git/repositories/${encodeURIComponent(repository)}/pullrequests/${pullRequestId}`,
+    {
+      params: {
+        'api-version': '7.0'
+      }
+    }
+  );
+
+  const pr = prResponse.data;
+
+  // Obtener la última iteración del PR
+  const iterationsResponse = await client.get(
+    `/${encodeURIComponent(project)}/_apis/git/repositories/${encodeURIComponent(repository)}/pullrequests/${pullRequestId}/iterations`,
+    {
+      params: {
+        'api-version': '7.0',
+        '$top': 1,
+        '$orderby': 'id desc'
+      }
+    }
+  );
+
+  const latestIteration = iterationsResponse.data.value[0];
+
+  if (!latestIteration) {
+    return {
+      id: pr.pullRequestId,
+      title: pr.title,
+      status: pr.status,
+      createdBy: pr.createdBy.displayName,
+      creationDate: pr.creationDate,
+      sourceRefName: pr.sourceRefName.replace('refs/heads/', ''),
+      targetRefName: pr.targetRefName.replace('refs/heads/', ''),
+      url: pr.url,
+      description: pr.description,
+      changedFiles: []
+    };
+  }
+
+  // Obtener cambios de la iteración más reciente
+  const changesResponse = await client.get(
+    `/${encodeURIComponent(project)}/_apis/git/repositories/${encodeURIComponent(repository)}/pullrequests/${pullRequestId}/iterations/${latestIteration.id}/changes`,
+    {
+      params: {
+        'api-version': '7.0'
+      }
+    }
+  );
+
+  if (changesResponse.status >= 400) {
+    throw handleAxiosError(
+      { response: changesResponse },
+      'obtención de cambios del PR'
+    );
+  }
+
+  const changes = changesResponse.data?.changeEntries || changesResponse.data?.changes || [];
+  
+  // Filtrar solo archivos (no directorios) y mapear a la estructura deseada
+  const changedFiles = changes
+    .filter(change => {
+      if (!change.item) return false;
+      // Incluir si es un blob o si no tiene gitObjectType pero tiene path
+      return change.item.gitObjectType === 'blob' || 
+             (change.item.path && !change.item.isFolder);
+    })
+    .map(change => ({
+      path: change.item.path,
+      originalPath: change.originalPath || null,
+      changeType: change.changeType,
+      url: change.item.url
+    }));
+
+  return {
+    id: pr.pullRequestId,
+    title: pr.title,
+    status: pr.status,
+    createdBy: pr.createdBy.displayName,
+    creationDate: pr.creationDate,
+    sourceRefName: pr.sourceRefName.replace('refs/heads/', ''),
+    targetRefName: pr.targetRefName.replace('refs/heads/', ''),
+    url: pr.url,
+    description: pr.description,
+    changedFiles: changedFiles
+  };
+}
+
+/**
  * Deduce el tipo de rama a partir del tipo de work item en Azure DevOps.
  * @param {Object} workItem - Work item con la propiedad workItemType.
  * @returns {string} Prefijo de rama sugerido.
@@ -489,6 +592,7 @@ function inferBranchTypeFromWorkItem(workItem) {
 module.exports = {
   fetchAssignedWorkItems,
   fetchPullRequests,
+  fetchPullRequestDetails,
   inferBranchTypeFromWorkItem,
   AzureDevOpsError, // Exportar para uso en tests
 };

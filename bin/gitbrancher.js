@@ -13,6 +13,7 @@ const { printBranchInfo } = require('../src/cli/commands/infoCommand');
 const { resolveUserAlias, setStoredAlias, clearStoredAlias, getStoredAlias } = require('../src/config/userConfig');
 const { getEffectiveAzureConfig, setAzureConfig, clearAzureConfig, hasAzureCredentials } = require('../src/config/azureConfig');
 const { listPullRequests } = require('../src/cli/commands/prListCommand');
+const { analyzePullRequest } = require('../src/cli/commands/prAnalyzeCommand');
 
 const program = new Command();
 
@@ -212,6 +213,15 @@ prCommand
   .action(async (options) => {
     printBanner();
     await listPullRequests(options);
+  });
+
+prCommand
+  .command('analyze <prId>')
+  .description('Analiza un PR específico y genera el grafo de impacto')
+  .option('-o, --output <file>', 'Archivo de salida para el grafo JSON', 'graph.json')
+  .action(async (prId, options) => {
+    printBanner();
+    await analyzePullRequest({ prId, ...options });
   });
 
 if (!process.argv.slice(2).length) {
