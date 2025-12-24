@@ -10,8 +10,17 @@
     alt="NPM Downloads"
   />
 <img 
-  src="https://img.shields.io/badge/Azure%20DevOps-Compatible-blue?logo=azure-devops"
+  src="https://custom-icon-badges.demolab.com/badge/Azure%20DevOps-Compatible-blue?logo=microsoft-devops"
   alt="Azure DevOps"/>
+  <img 
+  src="https://img.shields.io/badge/GitHub-Coming%20Soon-lightgrey?logo=github"
+  alt="GitHub – Coming Soon"/>
+<img 
+  src="https://img.shields.io/badge/GitLab-Coming%20Soon-lightgrey?logo=gitlab"
+  alt="GitLab – Coming Soon"/>
+<img 
+  src="https://img.shields.io/badge/Jira-Coming%20Soon-lightgrey?logo=jira"
+  alt="Jira – Coming Soon"/>
 </p>
 
 
