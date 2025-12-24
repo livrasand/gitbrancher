@@ -29,16 +29,6 @@
 
 GitBrancher es una herramienta CLI con branding moderno que estandariza la creación de ramas Git aplicando convenciones claras y consistentes. Facilita el trabajo colaborativo, la automatización de CI/CD y el análisis de impacto de cambios en repositorios.
 
-## Características Principales
-
-- **Creación estandarizada de ramas** con formato `<usuario>/<tipo>/<descriptor>`
-- **Integración con Azure DevOps** para consultar work items y Pull Requests
-- **Análisis de impacto** de PRs con grafo de dependencias
-- **Almacenamiento seguro** de credenciales con Keychain del sistema
-- **Interfaz visual atractiva** con colores y banners
-- **Validaciones robustas** de nombres de rama
-- **Compatibilidad multiplataforma** (macOS, Windows, Linux)
-
 ## Instalación
 
 ```bash
@@ -166,7 +156,7 @@ gitbrancher pr analyze <prId> [--output archivo.json]
     "base": "master",
     "head": "feature/branch-name",
     "prId": 144174,
-    "prTitle": "PBI 399577: Studio Text...",
+    "prTitle": "hotfix: fail title...",
     "generatedAt": "2025-12-24T23:41:08.149Z",
     "stats": {
       "modifiedFiles": 2,
@@ -177,16 +167,16 @@ gitbrancher pr analyze <prId> [--output archivo.json]
   },
   "nodes": [
     {
-      "id": "/frontend/src/components/Component.svelte",
-      "label": "Component.svelte",
+      "id": "/frontend/src/components/Component.html",
+      "label": "Component.html",
       "kind": "file",
       "status": "edit",
       "modified": true,
       "url": "https://dev.azure.com/.../_apis/git/items/..."
     },
     {
-      "id": "/frontend/src/pages/Page.svelte",
-      "label": "Page.svelte",
+      "id": "/frontend/src/pages/Page.html",
+      "label": "Page.html",
       "kind": "file",
       "status": "affected",
       "modified": false
@@ -194,8 +184,8 @@ gitbrancher pr analyze <prId> [--output archivo.json]
   ],
   "edges": [
     {
-      "from": "/frontend/src/pages/Page.svelte",
-      "to": "/frontend/src/components/Component.svelte",
+      "from": "/frontend/src/pages/Page.html",
+      "to": "/frontend/src/components/Component.html",
       "relation": "imports"
     }
   ]
@@ -205,45 +195,6 @@ gitbrancher pr analyze <prId> [--output archivo.json]
 ### Tipos de Nodos
 - **`modified: true`** - Archivos modificados directamente en el PR
 - **`modified: false`** - Archivos afectados que importan los modificados
-
-## Arquitectura Técnica
-
-### Componentes Principales
-
-```
-┌─────────────────┐
-│   CLI Entry     │ bin/gitbrancher.js
-│   (Commander)   │
-└─────────┬───────┘
-          │
-    ┌─────┴─────┐
-    │ Commands │ src/cli/commands/
-    │          │ ├── newCommand.js
-    │          │ ├── prListCommand.js
-    │          │ ├── prAnalyzeCommand.js
-    │          │ └── ...
-    └─────┬─────┘
-          │
-    ┌─────┴─────────────────────┐
-    │ Services & Utils         │
-    │                          │
-    │ • Azure DevOps Service   │ src/integrations/
-    │ • Git Service            │ src/git/
-    │ • Config Management      │ src/config/
-    │ • Dependency Analyzer    │ src/utils/
-    │ • Validation Utils       │ src/cli/utils/
-    └──────────────────────────┘
-```
-
-### Tecnologías Utilizadas
-
-- **Commander.js** - CLI framework
-- **Axios** - HTTP client para Azure DevOps API
-- **Simple-git** - Git operations
-- **Keytar** - Secure credential storage
-- **Inquirer.js** - Interactive prompts
-- **Chalk & Figlet** - Terminal styling
-- **Boxen** - Terminal boxes
 
 ## Validaciones de Nombres de Rama
 
@@ -308,27 +259,6 @@ gitbrancher config --clear-alias
 gitbrancher config --clear-azure
 ```
 
-## Mejores Prácticas
-
-### Convenciones de Rama
-
-1. **Usa tipos estándar**: `feature`, `bugfix`, `hotfix`, `chore`, `docs`
-2. **Nombres descriptivos**: Explica claramente el propósito
-3. **IDs de tickets**: Incluye números de work item cuando aplique
-4. **Nombres cortos**: Mantén legibilidad (máximo 50 chars por segmento)
-
-### Trabajo con PRs
-
-1. **Analiza antes de merge**: Usa `gitbrancher pr analyze` para entender impacto
-2. **Revisa dependencias**: Verifica archivos afectados indirectamente
-3. **Configura credenciales**: Asegura acceso a Azure DevOps API
-
-### Seguridad
-
-1. **PAT con permisos mínimos**: Solo Code (read/write) y Work Items (read)
-2. **Expiración de tokens**: Renueva tokens periódicamente
-3. **Acceso controlado**: Limita visibilidad de credenciales
-
 ## Contribución
 
 ### Requisitos de Desarrollo
@@ -348,16 +278,6 @@ npm run ci-test    # Ejecutar pruebas en contenedor
 npm link
 gitbrancher --help
 ```
-
-### Estructura de Código
-
-- **`bin/`** - Punto de entrada CLI
-- **`src/cli/commands/`** - Implementación de comandos
-- **`src/integrations/`** - Servicios externos (Azure DevOps)
-- **`src/git/`** - Operaciones Git
-- **`src/config/`** - Gestión de configuración
-- **`src/utils/`** - Utilidades compartidas
-- **`tests/`** - Suite de pruebas
 
 ---
 
