@@ -28,24 +28,25 @@ function validateSpecialCharacters(segment, segmentName) {
 }
 
 /**
- * Valida la longitud de un segmento procesado.
+ * Valida y trunca la longitud de un segmento procesado si es necesario.
  * @param {string} segment - Segmento procesado a validar.
  * @param {string} segmentName - Nombre del segmento para mensajes de error.
- * @throws {Error} Si el segmento excede la longitud máxima.
+ * @returns {string} El segmento truncado si excede MAX_SEGMENT_LENGTH, o el original si está dentro del límite.
+ * @throws {Error} Si el segmento es demasiado corto.
  */
 function validateSegmentLength(segment, segmentName) {
-  if (segment.length > MAX_SEGMENT_LENGTH) {
-    throw new Error(
-      `El ${segmentName} es demasiado largo (${segment.length} caracteres). ` +
-      `El máximo permitido es ${MAX_SEGMENT_LENGTH} caracteres.`
-    );
-  }
-
   if (segment.length < MIN_SEGMENT_LENGTH) {
     throw new Error(
       `El ${segmentName} es demasiado corto. Debe tener al menos ${MIN_SEGMENT_LENGTH} carácter.`
     );
   }
+
+  // Si excede el límite, truncar automáticamente en lugar de lanzar error
+  if (segment.length > MAX_SEGMENT_LENGTH) {
+    return segment.substring(0, MAX_SEGMENT_LENGTH);
+  }
+
+  return segment;
 }
 
 /**
@@ -144,13 +145,13 @@ function formatBranchName({ userAlias, branchType, descriptor }) {
     throw new Error('El descriptor proporcionado no generó un nombre válido. Intenta utilizar letras, números o guiones.');
   }
 
-  // Validar longitud de cada segmento
-  validateSegmentLength(aliasSegment, 'alias');
-  validateSegmentLength(typeSegment, 'tipo de rama');
-  validateSegmentLength(descriptorSegment, 'descriptor');
+  // Validar y truncar longitud de cada segmento si es necesario
+  const finalAliasSegment = validateSegmentLength(aliasSegment, 'alias');
+  const finalTypeSegment = validateSegmentLength(typeSegment, 'tipo de rama');
+  const finalDescriptorSegment = validateSegmentLength(descriptorSegment, 'descriptor');
 
   // Construir el nombre completo de la rama
-  const branchName = `${aliasSegment}/${typeSegment}/${descriptorSegment}`;
+  const branchName = `${finalAliasSegment}/${finalTypeSegment}/${finalDescriptorSegment}`;
 
   // Validar longitud total del nombre de la rama
   if (branchName.length > MAX_BRANCH_NAME_LENGTH) {
@@ -172,4 +173,5 @@ function formatBranchName({ userAlias, branchType, descriptor }) {
 
 module.exports = {
   formatBranchName,
+  MAX_SEGMENT_LENGTH,
 };

@@ -5,7 +5,19 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
-## [1.1.0] - 2024-12-24
+## [1.2.0] - 2025-12-24
+
+### ✨ Mejoras
+- **UX de Branching mejorada**: Ahora el sistema es mucho más tolerante y dinámico.
+- **Límite Visual en Tiempo Real**: Implementado `inquirer-maxlength-input-prompt` para limitar visualmente la entrada del descriptor a 50 caracteres.
+- **Truncado Automático de Segmentos**: Los segmentos (alias, tipo, descriptor) ahora se truncan automáticamente a un máximo de 50 caracteres (`MAX_SEGMENT_LENGTH`) en lugar de lanzar un error que interrumpa el flujo del usuario.
+- **Sugerencias Inteligentes**: Las sugerencias automáticas provenientes de Azure DevOps ahora se pre-truncan para ajustarse al límite recomendado.
+- **Configuración Centralizada**: Se centralizó el límite de caracteres (`MAX_SEGMENT_LENGTH`) para facilitar el mantenimiento futuro.
+
+### 📦 Dependencias
+- Añadido `inquirer-maxlength-input-prompt` para una mejor experiencia interactiva.
+
+## [1.1.0] - 2025-12-24 (Corregido fecha 2025)
 
 ### 🔐 Seguridad
 

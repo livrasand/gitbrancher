@@ -1,10 +1,14 @@
 const inquirerModule = require('inquirer');
 const inquirer = inquirerModule.default || inquirerModule;
+const MaxLengthInputPrompt = require('inquirer-maxlength-input-prompt');
 const chalk = require('chalk');
+
+// Registrar el prompt personalizado para limitar la longitud del input
+inquirer.registerPrompt('maxlength-input', MaxLengthInputPrompt);
 const { DEFAULT_BRANCH_TYPES } = require('../constants/branchTypes');
 const { resolveUserAlias, setStoredAlias } = require('../../config/userConfig');
 const { createBranch, pushBranch } = require('../../git/gitService');
-const { formatBranchName } = require('../utils/branchName');
+const { formatBranchName, MAX_SEGMENT_LENGTH } = require('../utils/branchName');
 const { slugifySegment } = require('../utils/textHelpers');
 const { getEffectiveAzureConfig, hasAzureCredentials } = require('../../config/azureConfig');
 const { fetchAssignedWorkItems, inferBranchTypeFromWorkItem } = require('../../integrations/azureDevOpsService');
@@ -129,9 +133,10 @@ async function createNewBranchInteractive({ push } = {}) {
         default: inferredTypeFromAzure || undefined,
       },
       {
-        type: 'input',
+        type: 'maxlength-input',
         name: 'descriptor',
-        message: 'Introduce un nombre descriptivo o ID de ticket (por ejemplo, 383265-misplaced-pictures-hlc-39):',
+        message: `Introduce un nombre descriptivo o ID de ticket (máx. ${MAX_SEGMENT_LENGTH} caracteres):`,
+        maxLength: MAX_SEGMENT_LENGTH,
         validate: (value) => {
           if (!value || !value.trim()) {
             return 'El nombre descriptivo no puede estar vacío.';
@@ -139,7 +144,7 @@ async function createNewBranchInteractive({ push } = {}) {
           return true;
         },
         default: selectedWorkItem
-          ? `${selectedWorkItem.id}-${slugifySegment(selectedWorkItem.title)}`
+          ? `${selectedWorkItem.id}-${slugifySegment(selectedWorkItem.title)}`.substring(0, MAX_SEGMENT_LENGTH)
           : undefined,
       },
     ];
