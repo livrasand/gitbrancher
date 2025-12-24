@@ -9,6 +9,48 @@ const { getEffectiveAzureConfig, hasAzureCredentials } = require('../../config/a
 const { fetchAssignedWorkItems, inferBranchTypeFromWorkItem } = require('../../integrations/azureDevOpsService');
 
 /**
+ * Punto de entrada para la creación de ramas.
+ * Delega en el flujo interactivo o directo según las opciones.
+ * @param {Object} options - Opciones recibidas desde la CLI (type, desc, interactive, etc.)
+ */
+async function createNewBranch(options = {}) {
+  // commander pasa interactive: false si se usa --no-interactive
+  if (options.interactive === false) {
+    return createNewBranchNonInteractive(options);
+  }
+  return createNewBranchInteractive();
+}
+
+/**
+ * Crea una rama directamente sin preguntar al usuario, ideal para scripts o usuarios avanzados.
+ * @param {Object} params
+ * @param {string} params.type - Tipo de rama (feature, bugfix, etc.)
+ * @param {string} params.desc - Descriptor (nombre o ID del ticket)
+ */
+async function createNewBranchNonInteractive({ type, desc }) {
+  if (!type || !desc) {
+    throw new Error('En modo no interactivo, debes especificar --type y --desc obligatoriamente.');
+  }
+
+  const validTypes = DEFAULT_BRANCH_TYPES.map((t) => t.prefix);
+  if (!validTypes.includes(type)) {
+    throw new Error(`Tipo de rama inválido "${type}". Tipos permitidos: ${validTypes.join(', ')}`);
+  }
+
+  const userAlias = await resolveUserAlias();
+
+  if (userAlias === 'unknown') {
+    console.warn(chalk.yellow('Advertencia: No se pudo determinar un alias de usuario (ni por config, ni git). Se usará "unknown".'));
+    console.warn(chalk.yellow('Sugerencia: Configura un alias con `gitbrancher config --alias <tu-alias>`.'));
+  }
+
+  const branchName = formatBranchName({ userAlias, branchType: type, descriptor: desc });
+
+  await createBranch(branchName);
+  console.log(chalk.green(`\n✅ Rama creada: ${branchName}`));
+}
+
+/**
  * Presenta un flujo interactivo para solicitar la información necesaria
  * y crear una nueva rama con la convención <alias>/<tipo>/<nombre>.
  * @returns {Promise<void>} Una promesa que se resuelve cuando la rama ha sido creada.
@@ -117,5 +159,6 @@ ${selectedWorkItem ? `Work item Azure: ${chalk.white(`#${selectedWorkItem.id} ${
 }
 
 module.exports = {
-  createNewBranchInteractive,
+  createNewBranch,
+  createNewBranchInteractive, // Kept for backward compatibility or testing if needed
 };

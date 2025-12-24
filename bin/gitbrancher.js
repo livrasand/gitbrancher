@@ -6,7 +6,7 @@ const inquirerModule = require('inquirer');
 const inquirer = inquirerModule.default || inquirerModule;
 const pkg = require('../package.json');
 const { printBanner } = require('../src/cli/display/banner');
-const { createNewBranchInteractive } = require('../src/cli/commands/newCommand');
+const { createNewBranch } = require('../src/cli/commands/newCommand');
 const { listBranchTypes } = require('../src/cli/commands/listTypesCommand');
 const { printHelp } = require('../src/cli/commands/helpCommand');
 const { printBranchInfo } = require('../src/cli/commands/infoCommand');
@@ -24,12 +24,15 @@ program
   .command('new')
   .description('Crea una nueva rama siguiendo la convención <usuario>/<tipo>/<descriptor>.')
   .option('-s, --silent', 'Omite el banner de bienvenida.')
+  .option('-t, --type <type>', 'Tipo de rama (feature, bugfix, etc.)')
+  .option('-d, --desc <descriptor>', 'Descripción de la rama o ID del ticket.')
+  .option('--no-interactive', 'Ejecuta en modo no interactivo (requiere --type y --desc).')
   .action(async (options) => {
     try {
       if (!options.silent) {
         printBanner();
       }
-      await createNewBranchInteractive();
+      await createNewBranch(options);
     } catch (error) {
       console.error(chalk.red(`\nError: ${error.message}`));
       process.exitCode = 1;
