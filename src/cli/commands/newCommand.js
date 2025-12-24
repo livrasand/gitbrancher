@@ -3,7 +3,7 @@ const inquirer = inquirerModule.default || inquirerModule;
 const chalk = require('chalk');
 const { DEFAULT_BRANCH_TYPES } = require('../constants/branchTypes');
 const { resolveUserAlias, setStoredAlias } = require('../../config/userConfig');
-const { createBranch } = require('../../git/gitService');
+const { createBranch, pushBranch } = require('../../git/gitService');
 const { formatBranchName } = require('../utils/branchName');
 const { getEffectiveAzureConfig, hasAzureCredentials } = require('../../config/azureConfig');
 const { fetchAssignedWorkItems, inferBranchTypeFromWorkItem } = require('../../integrations/azureDevOpsService');
@@ -18,7 +18,7 @@ async function createNewBranch(options = {}) {
   if (options.interactive === false) {
     return createNewBranchNonInteractive(options);
   }
-  return createNewBranchInteractive();
+  return createNewBranchInteractive(options);
 }
 
 /**
@@ -27,7 +27,7 @@ async function createNewBranch(options = {}) {
  * @param {string} params.type - Tipo de rama (feature, bugfix, etc.)
  * @param {string} params.desc - Descriptor (nombre o ID del ticket)
  */
-async function createNewBranchNonInteractive({ type, desc }) {
+async function createNewBranchNonInteractive({ type, desc, push }) {
   if (!type || !desc) {
     throw new Error('En modo no interactivo, debes especificar --type y --desc obligatoriamente.');
   }
@@ -48,14 +48,21 @@ async function createNewBranchNonInteractive({ type, desc }) {
 
   await createBranch(branchName);
   console.log(chalk.green(`\n✅ Rama creada: ${branchName}`));
+
+  if (push) {
+    console.log(chalk.gray('Pushing al remoto...'));
+    await pushBranch(branchName);
+    console.log(chalk.green(`✅ Rama subida a origin/${branchName}`));
+  }
 }
+
 
 /**
  * Presenta un flujo interactivo para solicitar la información necesaria
  * y crear una nueva rama con la convención <alias>/<tipo>/<nombre>.
  * @returns {Promise<void>} Una promesa que se resuelve cuando la rama ha sido creada.
  */
-async function createNewBranchInteractive() {
+async function createNewBranchInteractive({ push } = {}) {
   try {
     console.log(chalk.cyan('\nVamos a crear una nueva rama siguiendo el flujo estandarizado.'));
 
@@ -151,6 +158,27 @@ ${selectedWorkItem ? `Work item Azure: ${chalk.white(`#${selectedWorkItem.id} ${
 
     console.log(chalk.green(`\n✅ Rama creada: ${branchName}`));
     console.log(chalk.gray('Puedes comenzar a trabajar en tu nueva rama inmediatamente.\n'));
+
+    // Flujo de Push opcional o solicitado
+    let shouldPush = push;
+    if (shouldPush === undefined || shouldPush === false) {
+      const answer = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'wantToPush',
+          message: '¿Quieres subir esta rama al repositorio remoto ahora?',
+          default: false,
+        },
+      ]);
+      shouldPush = answer.wantToPush;
+    }
+
+    if (shouldPush) {
+      console.log(chalk.gray('Subiendo rama a remote...'));
+      await pushBranch(branchName);
+      console.log(chalk.green(`✅ Rama subida a origin/${branchName}`));
+    }
+
   } catch (error) {
     console.error(chalk.red('\n❌ Ocurrió un error al crear la rama:'));
     console.error(chalk.red(error.message));

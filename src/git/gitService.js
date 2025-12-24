@@ -68,9 +68,32 @@ async function getCurrentBranch() {
   }
 }
 
+
+/**
+ * Sube la rama especificada al repositorio remoto (origin) y establece el upstream.
+ * Equivalente a `git push -u origin <branchName>`.
+ * @param {string} branchName - Nombre de la rama a subir.
+ * @returns {Promise<void>}
+ * @throws {Error} Si ocurre un error durante el push.
+ */
+async function pushBranch(branchName) {
+  if (!branchName || !branchName.trim()) {
+    throw new Error('El nombre de la rama no puede estar vacío para realizar push.');
+  }
+
+  const git = createGitClient();
+  try {
+    // push con -u (set-upstream) origin <branchName>
+    await git.push(['-u', 'origin', branchName]);
+  } catch (error) {
+    throw new Error(`No fue posible subir la rama "${branchName}" al remoto: ${error.message}`);
+  }
+}
+
 module.exports = {
   createGitClient,
   getGitUserName,
   createBranch,
   getCurrentBranch,
+  pushBranch,
 };

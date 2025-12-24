@@ -26,6 +26,7 @@ program
   .option('-s, --silent', 'Omite el banner de bienvenida.')
   .option('-t, --type <type>', 'Tipo de rama (feature, bugfix, etc.)')
   .option('-d, --desc <descriptor>', 'Descripción de la rama o ID del ticket.')
+  .option('--push', 'Sube la rama recién creada al repositorio remoto (origin).')
   .option('--no-interactive', 'Ejecuta en modo no interactivo (requiere --type y --desc).')
   .action(async (options) => {
     try {
