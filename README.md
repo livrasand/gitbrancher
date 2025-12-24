@@ -2,6 +2,8 @@
 
 CLI para crear ramas Git con nombres estandarizados según el flujo de trabajo.
 
+[![NPM](https://nodei.co/npm/@livrasand/gitbrancher.svg?data=d,s)](https://nodei.co/npm/@livrasand/gitbrancher/)
+
 ## Instalación
 
 ```bash
