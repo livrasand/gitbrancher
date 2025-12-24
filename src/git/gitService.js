@@ -52,8 +52,25 @@ async function createBranch(branchName) {
   }
 }
 
+
+/**
+ * Obtiene el nombre de la rama actual en el repositorio local.
+ * @returns {Promise<string>} Nombre de la rama actual.
+ * @throws {Error} Si no se puede determinar la rama actual.
+ */
+async function getCurrentBranch() {
+  const git = createGitClient();
+  try {
+    const branchSummary = await git.branchLocal();
+    return branchSummary.current;
+  } catch (error) {
+    throw new Error(`No fue posible determinar la rama actual: ${error.message}`);
+  }
+}
+
 module.exports = {
   createGitClient,
   getGitUserName,
   createBranch,
+  getCurrentBranch,
 };

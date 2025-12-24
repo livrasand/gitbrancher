@@ -9,6 +9,7 @@ const { printBanner } = require('../src/cli/display/banner');
 const { createNewBranchInteractive } = require('../src/cli/commands/newCommand');
 const { listBranchTypes } = require('../src/cli/commands/listTypesCommand');
 const { printHelp } = require('../src/cli/commands/helpCommand');
+const { printBranchInfo } = require('../src/cli/commands/infoCommand');
 const { resolveUserAlias, setStoredAlias, clearStoredAlias, getStoredAlias } = require('../src/config/userConfig');
 const { getEffectiveAzureConfig, setAzureConfig, clearAzureConfig, hasAzureCredentials } = require('../src/config/azureConfig');
 
@@ -41,6 +42,15 @@ program
   .action(() => {
     printBanner();
     listBranchTypes();
+  });
+
+program
+  .command('info')
+  .alias('status')
+  .description('Muestra información de la rama actual y valida si cumple la convención.')
+  .action(async () => {
+    printBanner();
+    await printBranchInfo();
   });
 
 program
