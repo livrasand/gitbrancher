@@ -5,6 +5,7 @@ const { DEFAULT_BRANCH_TYPES } = require('../constants/branchTypes');
 const { resolveUserAlias, setStoredAlias } = require('../../config/userConfig');
 const { createBranch, pushBranch } = require('../../git/gitService');
 const { formatBranchName } = require('../utils/branchName');
+const { slugifySegment } = require('../utils/textHelpers');
 const { getEffectiveAzureConfig, hasAzureCredentials } = require('../../config/azureConfig');
 const { fetchAssignedWorkItems, inferBranchTypeFromWorkItem } = require('../../integrations/azureDevOpsService');
 
@@ -137,7 +138,9 @@ async function createNewBranchInteractive({ push } = {}) {
           }
           return true;
         },
-        default: selectedWorkItem ? `${selectedWorkItem.id}-${selectedWorkItem.title}` : undefined,
+        default: selectedWorkItem
+          ? `${selectedWorkItem.id}-${slugifySegment(selectedWorkItem.title)}`
+          : undefined,
       },
     ];
 
