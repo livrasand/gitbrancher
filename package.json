@@ -1,6 +1,6 @@
 {
   "name": "@livrasand/gitbrancher",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "CLI para crear ramas Git con nombres estandarizados según el flujo de trabajo.",
   "bin": {
     "gitbrancher": "./bin/gitbrancher.js"
@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node ./bin/gitbrancher.js",
     "help": "node ./bin/gitbrancher.js help",
+    "migrate": "node ./bin/migrate-credentials.js",
     "test": "echo 'Aún no hay pruebas definidas' && exit 0"
   },
   "engines": {
@@ -43,6 +44,7 @@
     "dotenv": "^16.3.1",
     "figlet": "^1.7.0",
     "inquirer": "^9.2.12",
+    "keytar": "^7.9.0",
     "simple-git": "^3.23.0"
   }
 }

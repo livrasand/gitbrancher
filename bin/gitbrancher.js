@@ -85,13 +85,13 @@ program
     }
 
     if (options.clearAzure) {
-      clearAzureConfig();
+      await clearAzureConfig();
       console.log(chalk.green('Configuración de Azure DevOps eliminada correctamente.'));
       performedAction = true;
     }
 
     if (options.azure) {
-      const currentAzure = getEffectiveAzureConfig();
+      const currentAzure = await getEffectiveAzureConfig();
 
       const azureAnswers = await inquirer.prompt([
         {
@@ -150,13 +150,13 @@ program
       }
 
       if (Object.keys(updates).length > 0) {
-        setAzureConfig(updates);
+        await setAzureConfig(updates);
         console.log(chalk.green('Configuración de Azure DevOps actualizada.'));
       } else {
         console.log(chalk.yellow('No se detectaron cambios en la configuración de Azure DevOps.'));
       }
 
-      const updatedAzure = getEffectiveAzureConfig();
+      const updatedAzure = await getEffectiveAzureConfig();
       const missingFields = ['organization', 'project', 'pat'].filter((field) => !updatedAzure[field]);
 
       if (missingFields.length) {
@@ -170,7 +170,7 @@ program
 
     const currentAlias = await resolveUserAlias();
     const storedAlias = getStoredAlias();
-    const azureConfig = getEffectiveAzureConfig();
+    const azureConfig = await getEffectiveAzureConfig();
 
     console.log(chalk.cyan('\nResumen de configuración:'));
     console.log(`${chalk.gray('  Alias efectivo:')} ${chalk.white(currentAlias)}`);

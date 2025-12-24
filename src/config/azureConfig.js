@@ -1,37 +1,13 @@
-const ConfigstoreModule = require('configstore');
-const Configstore = ConfigstoreModule.default || ConfigstoreModule;
 const dotenv = require('dotenv');
 
 const { loadLocalRcConfig, loadGlobalRcConfig } = require('./rcLoader');
+const {
+  getSecureAzureConfig,
+  setSecureAzureConfig,
+  clearSecureAzureConfig,
+} = require('./secureCredentials');
 
 dotenv.config();
-
-const CONFIG_NAMESPACE = 'gitbrancher';
-const AZURE_CONFIG_KEY = 'azure';
-
-const configStore = new Configstore(CONFIG_NAMESPACE);
-
-function getStoredAzureConfig() {
-  return configStore.get(AZURE_CONFIG_KEY) || {};
-}
-
-function setStoredAzureConfig(partialConfig = {}) {
-  const current = getStoredAzureConfig();
-  const sanitizedEntries = Object.entries(partialConfig)
-    .filter(([_, value]) => typeof value === 'string' && value.trim().length > 0)
-    .map(([key, value]) => [key, value.trim()]);
-
-  if (!sanitizedEntries.length) {
-    return;
-  }
-
-  const merged = { ...current, ...Object.fromEntries(sanitizedEntries) };
-  configStore.set(AZURE_CONFIG_KEY, merged);
-}
-
-function clearStoredAzureConfig() {
-  configStore.delete(AZURE_CONFIG_KEY);
-}
 
 function extractAzureConfigFromRc(rcConfig) {
   if (!rcConfig) {
@@ -59,10 +35,12 @@ function extractAzureConfigFromRc(rcConfig) {
   return null;
 }
 
-function getEffectiveAzureConfig() {
+async function getEffectiveAzureConfig() {
   const localRc = extractAzureConfigFromRc(loadLocalRcConfig());
   const globalRc = extractAzureConfigFromRc(loadGlobalRcConfig());
-  const stored = getStoredAzureConfig();
+
+  // Obtener credenciales seguras del keychain (con migración automática)
+  const stored = await getSecureAzureConfig();
 
   return {
     organization: process.env.GITBRANCHER_AZURE_ORG || localRc?.organization || globalRc?.organization || stored.organization || null,
@@ -77,12 +55,12 @@ function hasAzureCredentials(config = getEffectiveAzureConfig()) {
   return Boolean(config.organization && config.project && config.pat);
 }
 
-function setAzureConfig(partialConfig = {}) {
-  setStoredAzureConfig(partialConfig);
+async function setAzureConfig(partialConfig = {}) {
+  await setSecureAzureConfig(partialConfig);
 }
 
-function clearAzureConfig() {
-  clearStoredAzureConfig();
+async function clearAzureConfig() {
+  await clearSecureAzureConfig();
 }
 
 module.exports = {

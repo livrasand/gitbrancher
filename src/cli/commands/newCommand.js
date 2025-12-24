@@ -67,7 +67,7 @@ async function createNewBranchInteractive({ push } = {}) {
   try {
     console.log(chalk.cyan('\nVamos a crear una nueva rama siguiendo el flujo estandarizado.'));
 
-    const azureConfig = getEffectiveAzureConfig();
+    const azureConfig = await getEffectiveAzureConfig();
     let selectedWorkItem = null;
     let inferredTypeFromAzure = null;
 

@@ -38,7 +38,9 @@ GitBrancher puede consultar tu backlog personal en Azure DevOps para crear ramas
    ```bash
    gitbrancher config --azure
    ```
-   Proporciona organización, proyecto y token personal (PAT). El asistente también acepta un equipo específico y tu usuario. Los datos se almacenan localmente usando Configstore.
+   Proporciona organización, proyecto y token personal (PAT). El asistente también acepta un equipo específico y tu usuario. 
+   
+   🔐 **Seguridad**: Las credenciales se almacenan de forma segura en el keychain del sistema operativo (Keychain en macOS, Credential Manager en Windows, libsecret en Linux), protegiendo tu PAT con encriptación del OS.
 
 2. **(Opcional) Variables de entorno**
    Puedes definir `GITBRANCHER_AZURE_ORG`, `GITBRANCHER_AZURE_PROJECT`, `GITBRANCHER_AZURE_PAT`, etc. como alternativa o complemento al asistente.
