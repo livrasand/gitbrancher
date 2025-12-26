@@ -15,6 +15,10 @@ const { getEffectiveAzureConfig, setAzureConfig, clearAzureConfig, hasAzureCrede
 const { listPullRequests } = require('../src/cli/commands/prListCommand');
 const { analyzePullRequest } = require('../src/cli/commands/prAnalyzeCommand');
 
+const registerCommand = require('../src/cli/commands/registerCommand');
+const loginCommand = require('../src/cli/commands/loginCommand');
+const logoutCommand = require('../src/cli/commands/logoutCommand');
+
 const program = new Command();
 
 program
@@ -199,6 +203,27 @@ program
   .action(() => {
     printBanner();
     printHelp(program);
+  });
+
+program
+  .command('register')
+  .description('Regístrate en GitBrancher')
+  .action(async () => {
+    await registerCommand();
+  });
+
+program
+  .command('login')
+  .description('Inicia sesión en GitBrancher')
+  .action(async () => {
+    await loginCommand();
+  });
+
+program
+  .command('logout')
+  .description('Cierra sesión en GitBrancher')
+  .action(async () => {
+    await logoutCommand();
   });
 
 const prCommand = program

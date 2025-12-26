@@ -6,6 +6,7 @@ const { fetchPullRequestDetails } = require('../../integrations/azureDevOpsServi
 const { getEffectiveAzureConfig } = require('../../config/azureConfig');
 const { analyzeDependencies } = require('../../utils/dependencyAnalyzer');
 const aiAnalyzer = require('../../utils/aiAnalyzer');
+const { isLoggedIn } = require('../../utils/auth');
 const pkg = require('../../../package.json');
 const os = require('os');
 
@@ -953,8 +954,12 @@ async function analyzePullRequest(options) {
 
     // Análisis con AI si se solicita
     if (options.ai) {
+      if (!(await isLoggedIn())) {
+        console.error(chalk.red('\nError: Debes iniciar sesión para usar AI.'));
+        console.log(chalk.yellow('Ejecuta "gitbrancher login" para autenticarte.\n'));
+        process.exit(1);
+      }
       try {
-        require('dotenv').config();
         console.log(chalk.cyan('\n🤖 Analizando con AI...'));
         const analyzer = new aiAnalyzer();
         
@@ -1007,7 +1012,7 @@ async function analyzePullRequest(options) {
         }
       } catch (error) {
         console.log(chalk.yellow(`\n⚠️  No se pudo completar el análisis AI: ${error.message}`));
-        console.log(chalk.gray('Verifica que AI_API_KEY esté configurada correctamente'));
+        console.log(chalk.gray('Verifica tu conexión a internet o intenta más tarde'));
       }
     }
 

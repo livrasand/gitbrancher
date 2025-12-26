@@ -166,24 +166,33 @@ A partir de la versión 1.1.0, GitBrancher utiliza el **Keychain del sistema ope
 - **Ahora**: PAT encriptado por el sistema operativo
 - Protección adicional con políticas del OS
 
+## Autenticación
+
+GitBrancher requiere autenticación para acceder a funciones avanzadas como análisis con AI.
+
+### Registro
+
+```bash
+gitbrancher register
+```
+
+### Inicio de sesión
+
+```bash
+gitbrancher login
+```
+
+### Cierre de sesión
+
+```bash
+gitbrancher logout
+```
+
 ## Análisis con AI
 
 GitBrancher integra **AI** para análisis inteligente de código en Pull Requests, proporcionando insights sobre impacto, calidad y riesgos potenciales.
 
-### Configuración de AI
-
-```bash
-# macOS/Linux - Agregar a ~/.zshrc o ~/.bashrc
-export AI_API_KEY="tu_api_key_aqui"
-
-# Recargar configuración
-source ~/.zshrc
-```
-
-```powershell
-# Windows (PowerShell)
-[System.Environment]::SetEnvironmentVariable('AI_API_KEY', 'tu_api_key_aqui', 'User')
-```
+Requiere autenticación previa con gitbrancher login.
 
 ### Uso de AI
 
