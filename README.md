@@ -21,6 +21,9 @@
 <img
   src="https://img.shields.io/badge/Jira-Coming%20Soon-lightgrey?logo=jira"
   alt="Jira – Coming Soon"/>
+<img
+  src="https://img.shields.io/badge/Bitbucket-Coming%20Soon-lightgrey?logo=bitbucket"
+  alt="Bitbucket – Coming Soon"/>
 </p>
 
 # GitBrancher
