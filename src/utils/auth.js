@@ -79,6 +79,37 @@ async function logout() {
   return { success: true, message: 'Sesión cerrada.' };
 }
 
+async function getCredits() {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const response = await axios.get(`${SERVER_URL}/api/credits`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function consumeCredits(amount) {
+  const token = getToken();
+  if (!token) return { success: false, reason: 'not_logged_in' };
+
+  try {
+    const response = await axios.post(`${SERVER_URL}/api/ai/consume`, { amount }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 402) {
+      return { success: false, reason: 'insufficient_credits' };
+    }
+    return { success: false, reason: 'error' };
+  }
+}
+
 module.exports = {
   getToken,
   setToken,
@@ -86,5 +117,7 @@ module.exports = {
   isLoggedIn,
   register,
   login,
-  logout
+  logout,
+  getCredits,
+  consumeCredits
 };

@@ -7,6 +7,7 @@ const { getEffectiveAzureConfig } = require('../../config/azureConfig');
 const { analyzeDependencies } = require('../../utils/dependencyAnalyzer');
 const aiAnalyzer = require('../../utils/aiAnalyzer');
 const { isLoggedIn } = require('../../utils/auth');
+const { getCredits, consumeCredits } = require('../../utils/auth');
 const pkg = require('../../../package.json');
 const os = require('os');
 
@@ -959,6 +960,24 @@ async function analyzePullRequest(options) {
         console.log(chalk.yellow('Ejecuta "gitbrancher login" para autenticarte.\n'));
         process.exit(1);
       }
+
+      const credits = await getCredits();
+      if (!credits) {
+        console.error(chalk.red('\nError: No se pudieron obtener créditos.'));
+        process.exit(1);
+      }
+
+      const amount = options.aiFull ? 3 : 1;
+      if (credits.credits_used + amount > credits.credits_limit) {
+        console.error(chalk.red(`\n❌ Créditos insuficientes (${credits.credits_used}/${credits.credits_limit}).`));
+        if (credits.plan === 'free') {
+          console.log(chalk.yellow('Actualiza a Pro para 500 créditos AI / mes.'));
+        }
+        process.exit(1);
+      }
+
+      console.log(chalk.blue(`🧠 Créditos antes: ${credits.credits_used}/${credits.credits_limit}`));
+
       try {
         console.log(chalk.cyan('\n🤖 Analizando con AI...'));
         const analyzer = new aiAnalyzer();
@@ -1004,6 +1023,14 @@ async function analyzePullRequest(options) {
         // Guardar el grafo actualizado con análisis AI
         fs.writeFileSync(outputFile, JSON.stringify(impactGraph, null, 2));
         console.log(chalk.green('✓ Análisis AI completado'));
+        
+        // Consumir créditos
+        const consumeResult = await consumeCredits(amount);
+        if (consumeResult.success) {
+          console.log(chalk.blue(`🧠 Créditos después: ${consumeResult.credits_used}/${consumeResult.credits_limit}`));
+        } else {
+          console.log(chalk.yellow('⚠️ No se pudieron consumir créditos, pero análisis completado.'));
+        }
         
         // Mostrar resumen del análisis
         if (!options.html) {

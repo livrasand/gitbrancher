@@ -18,6 +18,7 @@ const { analyzePullRequest } = require('../src/cli/commands/prAnalyzeCommand');
 const registerCommand = require('../src/cli/commands/registerCommand');
 const loginCommand = require('../src/cli/commands/loginCommand');
 const logoutCommand = require('../src/cli/commands/logoutCommand');
+const creditsCommand = require('../src/cli/commands/creditsCommand');
 
 const program = new Command();
 
@@ -224,6 +225,13 @@ program
   .description('Cierra sesión en GitBrancher')
   .action(async () => {
     await logoutCommand();
+  });
+
+program
+  .command('credits')
+  .description('Mostrar créditos AI disponibles')
+  .action(async () => {
+    await creditsCommand();
   });
 
 const prCommand = program
