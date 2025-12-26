@@ -282,60 +282,17 @@ function generateVisualization(graph, htmlFile) {
   <title>PR Impact Graph - ${graph.meta.prId}</title>
   
   <!-- Fluent UI Web Components -->
-  <script type="module">
-    import { 
-      provideFluentDesignSystem,
-      fluentButton,
-      fluentCard,
-      fluentBadge,
-      fluentTabs,
-      fluentTab,
-      fluentTabPanel,
-      fluentDivider
-    } from "https://unpkg.com/@fluentui/web-components@3.0.0";
-    
-    provideFluentDesignSystem()
-      .register(
-        fluentButton(),
-        fluentCard(),
-        fluentBadge(),
-        fluentTabs(),
-        fluentTab(),
-        fluentTabPanel(),
-        fluentDivider()
-      );
-  </script>
+  <script type="module" src="https://unpkg.com/@fluentui/web-components@3.0.0"></script>
   
-  <!-- Cytoscape -->
+  <!-- Cytoscape for graph visualization -->
   <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
   
-  <!-- Highlight.js -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+  <!-- Highlight.js for diff syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/diff.min.js"></script>
   
   <style>
-    :root {
-      /* Fluent 2 Design Tokens - Dark Theme */
-      --colorNeutralBackground1: #1e1e1e;
-      --colorNeutralBackground2: #2b2b2b;
-      --colorNeutralBackground3: #323232;
-      --colorNeutralForeground1: #ffffff;
-      --colorNeutralForeground2: #d1d1d1;
-      --colorNeutralForeground3: #a6a6a6;
-      --colorBrandBackground: #0078d4;
-      --colorBrandForeground1: #4f9dd8;
-      --colorStatusSuccessBackground1: #107c10;
-      --colorStatusWarningBackground1: #f7630c;
-      --colorStatusDangerBackground1: #d13438;
-      --colorNeutralStroke1: #424242;
-      --colorNeutralStroke2: #525252;
-      --borderRadiusMedium: 8px;
-      --borderRadiusLarge: 12px;
-      --shadow4: 0 2px 4px rgba(0,0,0,0.24);
-      --shadow16: 0 8px 16px rgba(0,0,0,0.28);
-    }
-    
     * {
       margin: 0;
       padding: 0;
@@ -343,189 +300,242 @@ function generateVisualization(graph, htmlFile) {
     }
     
     body {
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
-      background: var(--colorNeutralBackground1);
-      color: var(--colorNeutralForeground1);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #0f1419;
+      color: #e6edf3;
       overflow: hidden;
-      height: 100vh;
     }
     
-    .app-container {
+    .container {
       display: flex;
       height: 100vh;
     }
     
-    /* Graph Panel */
-    .graph-panel {
-      flex: 1;
-      position: relative;
-      background: var(--colorNeutralBackground1);
-    }
-    
+    /* Panel Principal - Grafo */
     #cy {
-      width: 100%;
-      height: 100%;
+      flex: 1;
+      background: #0f1419;
+      position: relative;
     }
     
-    .graph-legend {
+    .graph-overlay {
       position: absolute;
       top: 20px;
       left: 20px;
-      background: var(--colorNeutralBackground2);
-      border: 1px solid var(--colorNeutralStroke1);
-      border-radius: var(--borderRadiusLarge);
+      background: rgba(1, 4, 9, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid #30363d;
+      border-radius: 12px;
       padding: 16px;
-      box-shadow: var(--shadow16);
-      backdrop-filter: blur(20px);
-      max-width: 280px;
+      z-index: 100;
+      max-width: 300px;
     }
     
-    .legend-title {
+    .graph-overlay h3 {
+      color: #58a6ff;
       font-size: 14px;
-      font-weight: 600;
-      color: var(--colorNeutralForeground1);
       margin-bottom: 12px;
+      font-weight: 600;
     }
     
-    .legend-item {
+    .graph-overlay .legend-item {
       display: flex;
       align-items: center;
-      gap: 8px;
       margin-bottom: 8px;
       font-size: 12px;
-      color: var(--colorNeutralForeground2);
     }
     
-    .legend-dot {
-      width: 12px;
-      height: 12px;
+    .legend-color {
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      flex-shrink: 0;
+      margin-right: 8px;
+      border: 2px solid #30363d;
     }
     
-    /* Sidebar */
+    /* Panel Lateral */
     .sidebar {
-      width: 480px;
-      background: var(--colorNeutralBackground2);
-      border-left: 1px solid var(--colorNeutralStroke1);
+      width: 500px;
+      background: #161b22;
+      border-left: 1px solid #21262d;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
     
-    /* PR Header */
+    /* Header del PR */
     .pr-header {
+      background: linear-gradient(135deg, #21262d 0%, #161b22 100%);
       padding: 24px;
-      background: var(--colorNeutralBackground3);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
-    }
-    
-    .pr-id {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--colorBrandForeground1);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      border-bottom: 1px solid #30363d;
     }
     
     .pr-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--colorNeutralForeground1);
+      font-size: 20px;
+      font-weight: 700;
+      color: #f0f6fc;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    
+    .pr-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       margin-bottom: 16px;
-      line-height: 1.4;
+    }
+    
+    .pr-meta-item {
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      color: #8b949e;
+    }
+    
+    .pr-meta-item svg {
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      flex-shrink: 0;
     }
     
     .pr-branches {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       margin-bottom: 16px;
     }
     
-    .branch-badge {
+    .branch {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
       padding: 6px 12px;
-      border-radius: var(--borderRadiusMedium);
+      font-family: 'SF Mono', Monaco, monospace;
       font-size: 12px;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-weight: 500;
+      color: #c9d1d9;
     }
     
-    .branch-source {
-      background: rgba(211, 52, 56, 0.15);
-      color: #ff6b6b;
-      border: 1px solid rgba(211, 52, 56, 0.3);
+    .branch.source { border-color: #f85149; background: rgba(248, 81, 73, 0.1); }
+    .branch.target { border-color: #238636; background: rgba(35, 134, 54, 0.1); }
+    
+    .pr-actions {
+      display: flex;
+      gap: 8px;
     }
     
-    .branch-target {
-      background: rgba(16, 124, 16, 0.15);
-      color: #73d173;
-      border: 1px solid rgba(16, 124, 16, 0.3);
+    .btn-primary {
+      flex: 1;
+      background: #238636;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     
-    .branch-arrow {
-      color: var(--colorNeutralForeground3);
-      font-size: 16px;
+    .btn-primary:hover {
+      background: #2ea043;
     }
     
-    /* Stats Grid */
+    /* Estadísticas */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
       padding: 20px;
-      background: var(--colorNeutralBackground1);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
-    }
-    
-    fluent-card {
-      --card-height: auto;
-      padding: 16px;
-      background: var(--colorNeutralBackground2);
-      border: 1px solid var(--colorNeutralStroke1);
+      background: #0d1117;
+      border-bottom: 1px solid #21262d;
     }
     
     .stat-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
       text-align: center;
     }
     
-    .stat-icon {
-      font-size: 24px;
-      margin-bottom: 8px;
+    .stat-card .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px;
+      font-size: 16px;
     }
     
-    .stat-value {
-      font-size: 32px;
+    .stat-card.modified .icon { background: #f851491a; color: #f85149; }
+    .stat-card.affected .icon { background: #d299221a; color: #d29922; }
+    .stat-card.dependencies .icon { background: #58a6ff1a; color: #58a6ff; }
+    .stat-card.total .icon { background: #2386361a; color: #238636; }
+    
+    .stat-card .value {
+      font-size: 28px;
       font-weight: 700;
-      color: var(--colorNeutralForeground1);
+      color: #f0f6fc;
       margin-bottom: 4px;
     }
     
-    .stat-label {
-      font-size: 11px;
-      color: var(--colorNeutralForeground3);
+    .stat-card .label {
+      font-size: 12px;
+      color: #8b949e;
       text-transform: uppercase;
       font-weight: 600;
       letter-spacing: 0.5px;
     }
     
-    /* Controls */
-    .controls-section {
-      padding: 16px 20px;
-      background: var(--colorNeutralBackground2);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
+    /* Contenido Principal */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
     
-    .controls-title {
-      font-size: 13px;
+    /* Filtros y Controles */
+    .controls-section {
+      padding: 16px 20px;
+      background: #161b22;
+      border-bottom: 1px solid #21262d;
+    }
+    
+    .section-title {
+      font-size: 14px;
       font-weight: 600;
-      color: var(--colorNeutralForeground1);
+      color: #f0f6fc;
       margin-bottom: 12px;
     }
     
-    fluent-tabs {
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
       margin-bottom: 16px;
+    }
+    
+    .tab-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .tab-btn.active {
+      background: #58a6ff;
+      border-color: #58a6ff;
+      color: #fff;
     }
     
     .control-buttons {
@@ -534,11 +544,27 @@ function generateVisualization(graph, htmlFile) {
       gap: 8px;
     }
     
-    fluent-button {
-      width: 100%;
+    .control-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
     
-    /* Details Panel */
+    .control-btn:hover {
+      background: #30363d;
+      border-color: #58a6ff;
+    }
+    
+    /* Panel de Detalles */
     .details-panel {
       flex: 1;
       padding: 20px;
@@ -548,46 +574,45 @@ function generateVisualization(graph, htmlFile) {
     .empty-state {
       text-align: center;
       padding: 60px 20px;
-      color: var(--colorNeutralForeground3);
+      color: #8b949e;
     }
     
-    .empty-icon {
-      font-size: 48px;
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
       margin-bottom: 16px;
       opacity: 0.5;
     }
     
-    .empty-title {
+    .empty-state h3 {
       font-size: 16px;
-      font-weight: 600;
-      color: var(--colorNeutralForeground2);
+      color: #f0f6fc;
       margin-bottom: 8px;
     }
     
-    .empty-description {
+    .empty-state p {
       font-size: 14px;
       line-height: 1.5;
     }
     
-    /* File Details */
-    .file-card {
-      background: var(--colorNeutralBackground3);
-      border: 1px solid var(--colorNeutralStroke1);
-      border-radius: var(--borderRadiusLarge);
+    /* Detalles del Archivo */
+    .file-details {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 12px;
       overflow: hidden;
-      margin-bottom: 16px;
     }
     
     .file-header {
       padding: 16px 20px;
-      background: var(--colorNeutralBackground2);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
     }
     
     .file-title {
       font-size: 16px;
       font-weight: 600;
-      color: var(--colorBrandForeground1);
+      color: #58a6ff;
       margin-bottom: 8px;
       display: flex;
       align-items: center;
@@ -595,12 +620,13 @@ function generateVisualization(graph, htmlFile) {
     }
     
     .file-path {
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 11px;
-      color: var(--colorNeutralForeground3);
-      background: var(--colorNeutralBackground1);
-      padding: 6px 10px;
-      border-radius: var(--borderRadiusMedium);
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 12px;
+      color: #8b949e;
+      background: #0d1117;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #30363d;
       word-break: break-all;
     }
     
@@ -613,36 +639,53 @@ function generateVisualization(graph, htmlFile) {
     
     .meta-item {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
     }
     
-    .meta-label {
-      font-size: 11px;
-      color: var(--colorNeutralForeground3);
-      text-transform: uppercase;
+    .meta-item .label {
+      color: #8b949e;
+      font-weight: 500;
+    }
+    
+    .meta-item .value {
+      color: #f0f6fc;
       font-weight: 600;
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     
-    .meta-value {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--colorNeutralForeground1);
-    }
+    .badge.modified { background: #f851491a; color: #f85149; border: 1px solid #f85149; }
+    .badge.affected { background: #d299221a; color: #d29922; border: 1px solid #d29922; }
+    .badge.edit { background: #1f6feb1a; color: #1f6feb; border: 1px solid #1f6feb; }
+    .badge.add { background: #2386361a; color: #238636; border: 1px solid #238636; }
+    .badge.delete { background: #da36331a; color: #da3633; border: 1px solid #da3633; }
     
     /* Impact Section */
     .impact-section {
-      margin-top: 16px;
+      margin-top: 20px;
+      background: #161b22;
+      border-radius: 8px;
+      overflow: hidden;
     }
     
     .impact-header {
       padding: 12px 20px;
-      background: var(--colorNeutralBackground2);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
+      background: #1c2128;
+      border-bottom: 1px solid #30363d;
       font-size: 13px;
       font-weight: 600;
-      color: var(--colorNeutralForeground1);
+      color: #f0f6fc;
     }
     
     .impact-list {
@@ -653,37 +696,41 @@ function generateVisualization(graph, htmlFile) {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 12px;
+      padding: 8px 12px;
       margin-bottom: 8px;
-      background: var(--colorNeutralBackground1);
-      border: 1px solid var(--colorNeutralStroke1);
-      border-radius: var(--borderRadiusMedium);
+      background: #0d1117;
+      border-radius: 6px;
+      border: 1px solid #21262d;
       transition: all 0.2s;
     }
     
     .impact-item:hover {
-      border-color: var(--colorBrandBackground);
-      background: var(--colorNeutralBackground2);
+      border-color: #58a6ff;
+      background: #161b22;
+    }
+    
+    .impact-item:last-child {
+      margin-bottom: 0;
     }
     
     .impact-file {
       font-size: 12px;
-      color: var(--colorNeutralForeground1);
+      color: #e6edf3;
       font-weight: 500;
     }
     
     .impact-line {
       font-size: 11px;
-      color: var(--colorNeutralForeground3);
-      font-family: 'Consolas', 'Monaco', monospace;
-      background: var(--colorNeutralBackground2);
-      padding: 4px 8px;
+      color: #8b949e;
+      font-family: 'SF Mono', Monaco, monospace;
+      background: #21262d;
+      padding: 2px 8px;
       border-radius: 4px;
     }
     
     /* Diff Section */
     .diff-section {
-      margin-top: 16px;
+      margin-top: 20px;
     }
     
     .diff-header {
@@ -691,14 +738,17 @@ function generateVisualization(graph, htmlFile) {
       align-items: center;
       justify-content: space-between;
       padding: 12px 20px;
-      background: var(--colorNeutralBackground2);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
     }
     
     .diff-title {
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
-      color: var(--colorNeutralForeground1);
+      color: #f0f6fc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     
     .diff-actions {
@@ -706,152 +756,201 @@ function generateVisualization(graph, htmlFile) {
       gap: 8px;
     }
     
+    .action-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .action-btn:hover {
+      background: #30363d;
+      border-color: #58a6ff;
+    }
+    
     .diff-content {
       max-height: 500px;
       overflow-y: auto;
-      background: var(--colorNeutralBackground1);
+      background: #0d1117;
     }
     
     .diff-content pre {
       margin: 0;
       padding: 20px;
-      font-family: 'Consolas', 'Monaco', monospace;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
       font-size: 12px;
       line-height: 1.6;
+      overflow-x: auto;
+    }
+    
+    .diff-content code {
+      background: transparent;
+    }
+    
+    .hljs {
+      background: #0d1117 !important;
+      color: #e6edf3;
+    }
+    
+    .hljs-addition {
+      background: rgba(35, 134, 54, 0.15);
+      color: #56d364;
+      display: block;
+      margin: 0 -20px;
+      padding: 0 20px;
+      border-left: 3px solid #238636;
+    }
+    
+    .hljs-deletion {
+      background: rgba(248, 81, 73, 0.15);
+      color: #f85149;
+      display: block;
+      margin: 0 -20px;
+      padding: 0 20px;
+      border-left: 3px solid #da3633;
     }
     
     .no-diff-message {
       padding: 40px 20px;
       text-align: center;
-      color: var(--colorNeutralForeground3);
+      color: #8b949e;
+      background: #0d1117;
     }
     
-    .no-diff-icon {
-      font-size: 32px;
-      margin-bottom: 12px;
+    .no-diff-message svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
       opacity: 0.5;
     }
     
-    /* Fluent Badge Overrides */
-    fluent-badge {
-      --badge-fill-brand: var(--colorBrandBackground);
-      --badge-color-brand: white;
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-      width: 12px;
+    .file-details, .diff-section {
+      animation: fadeIn 0.3s ease-out;
     }
     
-    ::-webkit-scrollbar-track {
-      background: var(--colorNeutralBackground1);
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .sidebar { width: 350px; }
     }
     
-    ::-webkit-scrollbar-thumb {
-      background: var(--colorNeutralStroke2);
-      border-radius: 6px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--colorNeutralForeground3);
+    @media (max-width: 1000px) {
+      .container { flex-direction: column; }
+      .sidebar { width: 100%; height: 50vh; }
+      #cy { height: 50vh; }
     }
   </style>
 </head>
 <body>
-  <div class="app-container">
-    <!-- Graph Panel -->
-    <div class="graph-panel">
-      <div id="cy"></div>
-      
-      <div class="graph-legend">
-        <div class="legend-title">📊 Leyenda</div>
+  <div class="container">
+    <!-- Panel Principal - Grafo -->
+    <div id="cy">
+      <div class="graph-overlay">
+        <h3>📊 Leyenda del Grafo</h3>
         <div class="legend-item">
-          <div class="legend-dot" style="background: #d13438;"></div>
+          <div class="legend-color" style="background: #f85149;"></div>
           <span>Archivos Modificados</span>
         </div>
         <div class="legend-item">
-          <div class="legend-dot" style="background: #f7630c;"></div>
+          <div class="legend-color" style="background: #d29922;"></div>
           <span>Archivos Afectados</span>
         </div>
         <div class="legend-item">
-          <div class="legend-dot" style="background: #0078d4;"></div>
-          <span>Seleccionado</span>
+          <span style="margin-left: 24px;">Conexiones = Dependencias</span>
         </div>
       </div>
     </div>
     
-    <!-- Sidebar -->
+    <!-- Panel Lateral -->
     <div class="sidebar">
-      <!-- PR Header -->
+      <!-- Header del PR -->
       <div class="pr-header">
-        <div class="pr-id">PR #${graph.meta.prId}</div>
-        <div class="pr-title">${graph.meta.prTitle}</div>
+        <div class="pr-title">PR #${graph.meta.prId}</div>
+        <div class="pr-meta">
+          <div class="pr-meta-item">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 9.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
+              <path fill-rule="evenodd" d="M8 0a8 8 0 100 16A8 8 0 000 8a8 8 0 000-16zM1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0z"/>
+            </svg>
+            ${graph.meta.prTitle}
+          </div>
+          <div class="pr-meta-item">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+              <path d="M11.536 3.464a5 5 0 010 7.072L8 8.536l-3.536 1.928a5 5 0 010-7.072L8 7.464l3.536-1.928z"/>
+            </svg>
+            Rama: ${graph.meta.head} → ${graph.meta.base}
+          </div>
+        </div>
+        
         <div class="pr-branches">
-          <span class="branch-badge branch-source">${graph.meta.head}</span>
-          <span class="branch-arrow">→</span>
-          <span class="branch-badge branch-target">${graph.meta.base}</span>
+          <span class="branch source">${graph.meta.head}</span>
+          <span class="branch target">${graph.meta.base}</span>
         </div>
       </div>
       
-      <!-- Stats -->
+      <!-- Estadísticas -->
       <div class="stats-grid">
-        <fluent-card>
-          <div class="stat-card">
-            <div class="stat-icon">📝</div>
-            <div class="stat-value">${graph.meta.stats.modifiedFiles}</div>
-            <div class="stat-label">Modificados</div>
-          </div>
-        </fluent-card>
-        
-        <fluent-card>
-          <div class="stat-card">
-            <div class="stat-icon">⚡</div>
-            <div class="stat-value">${graph.meta.stats.affectedFiles}</div>
-            <div class="stat-label">Afectados</div>
-          </div>
-        </fluent-card>
-        
-        <fluent-card>
-          <div class="stat-card">
-            <div class="stat-icon">🔗</div>
-            <div class="stat-value">${graph.meta.stats.dependencies}</div>
-            <div class="stat-label">Dependencias</div>
-          </div>
-        </fluent-card>
-        
-        <fluent-card>
-          <div class="stat-card">
-            <div class="stat-icon">📊</div>
-            <div class="stat-value">${graph.meta.stats.totalFiles}</div>
-            <div class="stat-label">Total</div>
-          </div>
-        </fluent-card>
-      </div>
-      
-      <!-- Controls -->
-      <div class="controls-section">
-        <div class="controls-title">🎛️ Controles</div>
-        
-        <fluent-tabs id="filter-tabs">
-          <fluent-tab id="tab-all">Todos</fluent-tab>
-          <fluent-tab id="tab-modified">Modificados</fluent-tab>
-          <fluent-tab id="tab-affected">Afectados</fluent-tab>
-        </fluent-tabs>
-        
-        <div class="control-buttons">
-          <fluent-button appearance="secondary" id="btn-reset">🔄 Reset</fluent-button>
-          <fluent-button appearance="secondary" id="btn-fit">📐 Ajustar</fluent-button>
-          <fluent-button appearance="secondary" id="btn-layout">🔀 Layout</fluent-button>
+        <div class="stat-card modified">
+          <div class="icon">📝</div>
+          <div class="value">${graph.meta.stats.modifiedFiles}</div>
+          <div class="label">Modificados</div>
+        </div>
+        <div class="stat-card affected">
+          <div class="icon">⚡</div>
+          <div class="value">${graph.meta.stats.affectedFiles}</div>
+          <div class="label">Afectados</div>
+        </div>
+        <div class="stat-card dependencies">
+          <div class="icon">🔗</div>
+          <div class="value">${graph.meta.stats.dependencies}</div>
+          <div class="label">Dependencias</div>
+        </div>
+        <div class="stat-card total">
+          <div class="icon">📊</div>
+          <div class="value">${graph.meta.stats.totalFiles}</div>
+          <div class="label">Total</div>
         </div>
       </div>
       
-      <!-- Details Panel -->
-      <div class="details-panel">
-        <div id="node-info">
-          <div class="empty-state">
-            <div class="empty-icon">🎯</div>
-            <div class="empty-title">Selecciona un archivo</div>
-            <div class="empty-description">Haz clic en cualquier nodo del grafo para ver sus detalles, cambios y dependencias.</div>
+      <!-- Contenido Principal -->
+      <div class="main-content">
+        <!-- Controles -->
+        <div class="controls-section">
+          <div class="section-title">🎛️ Controles del Grafo</div>
+          <div class="filter-tabs">
+            <button class="tab-btn active" onclick="filterNodes('all')">Todos</button>
+            <button class="tab-btn" onclick="filterNodes('modified')">Modificados</button>
+            <button class="tab-btn" onclick="filterNodes('affected')">Afectados</button>
+          </div>
+          <div class="control-buttons">
+            <button class="control-btn" onclick="resetView()">🔄 Reset</button>
+            <button class="control-btn" onclick="fitToScreen()">📐 Ajustar</button>
+            <button class="control-btn" onclick="toggleLayout()">🔀 Layout</button>
+          </div>
+        </div>
+        
+        <!-- Panel de Detalles -->
+        <div class="details-panel">
+          <div id="node-info">
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+              </svg>
+              <h3>Haz clic en un archivo</h3>
+              <p>Selecciona cualquier nodo del grafo para ver sus detalles, cambios y dependencias.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -861,7 +960,6 @@ function generateVisualization(graph, htmlFile) {
   <script>
     const graphData = ${JSON.stringify(graph, null, 2)};
     
-    // Initialize Cytoscape
     const elements = [
       ...graphData.nodes.map(node => ({
         data: {
@@ -893,41 +991,40 @@ function generateVisualization(graph, htmlFile) {
         {
           selector: 'node',
           style: {
-            'background-color': '#2b2b2b',
+            'background-color': '#21262d',
             'border-width': 2,
-            'border-color': '#424242',
+            'border-color': '#30363d',
             'label': 'data(label)',
-            'color': '#ffffff',
+            'color': '#e6edf3',
             'text-valign': 'center',
             'text-halign': 'center',
             'font-size': '11px',
-            'width': 50,
-            'height': 50,
-            'font-weight': '600',
-            'font-family': 'Segoe UI'
+            'width': 45,
+            'height': 45,
+            'font-weight': '500'
           }
         },
         {
           selector: 'node[modified = true]',
           style: {
-            'background-color': '#d13438',
-            'border-color': '#ff6b6b',
+            'background-color': '#f85149',
+            'border-color': '#da3633',
             'border-width': 3
           }
         },
         {
           selector: 'node[modified = false]',
           style: {
-            'background-color': '#f7630c',
-            'border-color': '#ff9f4a'
+            'background-color': '#d29922',
+            'border-color': '#bb8009'
           }
         },
         {
           selector: 'edge',
           style: {
             'width': 2,
-            'line-color': '#525252',
-            'target-arrow-color': '#525252',
+            'line-color': '#30363d',
+            'target-arrow-color': '#30363d',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             'arrow-scale': 1.2
@@ -936,17 +1033,18 @@ function generateVisualization(graph, htmlFile) {
         {
           selector: 'node:selected',
           style: {
-            'border-color': '#0078d4',
-            'border-width': 4
+            'border-color': '#58a6ff',
+            'border-width': 4,
+            'background-color': (ele) => ele.data('modified') ? '#f85149' : '#d29922'
           }
         },
         {
           selector: '.highlighted',
           style: {
-            'background-color': '#0078d4',
-            'line-color': '#0078d4',
-            'target-arrow-color': '#0078d4',
-            'border-color': '#4f9dd8'
+            'background-color': '#58a6ff',
+            'line-color': '#58a6ff',
+            'target-arrow-color': '#58a6ff',
+            'border-color': '#58a6ff'
           }
         },
         {
@@ -967,19 +1065,17 @@ function generateVisualization(graph, htmlFile) {
       }
     });
     
-    // Filter tabs
-    document.getElementById('tab-all').addEventListener('click', () => filterNodes('all'));
-    document.getElementById('tab-modified').addEventListener('click', () => filterNodes('modified'));
-    document.getElementById('tab-affected').addEventListener('click', () => filterNodes('affected'));
-    
-    // Control buttons
-    document.getElementById('btn-reset').addEventListener('click', resetView);
-    document.getElementById('btn-fit').addEventListener('click', fitToScreen);
-    document.getElementById('btn-layout').addEventListener('click', toggleLayout);
-    
+    // Funciones de filtro
     function filterNodes(filter) {
       currentFilter = filter;
       
+      // Actualizar botones
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      // Aplicar filtro
       if (filter === 'all') {
         cy.elements().removeClass('dimmed');
       } else if (filter === 'modified') {
@@ -993,37 +1089,46 @@ function generateVisualization(graph, htmlFile) {
       cy.fit();
     }
     
-    // Node selection
+    // Evento de selección de nodo
     cy.on('tap', 'node', function(evt) {
       const node = evt.target;
       const data = node.data();
       
       cy.elements().removeClass('highlighted').removeClass('dimmed');
       
+      // Resaltar nodo seleccionado y conexiones
       node.addClass('highlighted');
       node.connectedEdges().addClass('highlighted');
       node.neighborhood('node').addClass('highlighted');
       
+      // Aplicar filtro actual si no es 'all'
       if (currentFilter === 'modified') {
         cy.elements('node[modified = false]').addClass('dimmed');
       } else if (currentFilter === 'affected') {
         cy.elements('node[modified = true]').addClass('dimmed');
       }
       
+      // Buscar datos completos del nodo
       const fullNode = graphData.nodes.find(n => n.id === data.id);
       const hasDiff = fullNode && fullNode.diff;
       
+      // Generar contenido del panel de detalles
       const statusBadge = data.modified 
-        ? '<fluent-badge appearance="filled" color="danger">Modificado</fluent-badge>'
-        : '<fluent-badge appearance="filled" color="warning">Afectado</fluent-badge>';
+        ? '<span class="badge modified">Modificado</span>'
+        : '<span class="badge affected">Afectado</span>';
       
       const changeTypeBadge = data.status 
-        ? '<fluent-badge>' + data.status.toUpperCase() + '</fluent-badge>'
+        ? '<span class="badge ' + data.status + '">' + data.status.toUpperCase() + '</span>'
+        : '';
+      
+      const azureLink = data.url 
+        ? '<a href="' + data.url + '" target="_blank" class="btn-primary" style="margin-top: 16px;">🔗 Ver en Azure DevOps</a>'
         : '';
       
       const incoming = node.incomers('node').length;
       const outgoing = node.outgoers('node').length;
       
+      // Obtener información de dependencias con líneas
       const incomingEdges = node.incomers('edge').map(edge => ({
         from: edge.data('source'),
         line: edge.data('line')
@@ -1034,25 +1139,30 @@ function generateVisualization(graph, htmlFile) {
         line: edge.data('line')
       }));
       
-      let detailsContent = '<div class="file-card">' +
+      // Contenido principal del archivo
+      let detailsContent = '<div class="file-details">' +
         '<div class="file-header">' +
-          '<div class="file-title">📄 ' + data.label + ' ' + statusBadge + ' ' + changeTypeBadge + '</div>' +
+          '<div class="file-title">' +
+            '📄 ' + data.label +
+            ' ' + statusBadge + ' ' + changeTypeBadge +
+          '</div>' +
           '<div class="file-path">' + data.id + '</div>' +
           '<div class="file-meta">' +
             '<div class="meta-item">' +
-              '<div class="meta-label">Entrantes</div>' +
-              '<div class="meta-value">' + incoming + '</div>' +
+              '<span class="label">Entrantes:</span>' +
+              '<span class="value">' + incoming + '</span>' +
             '</div>' +
             '<div class="meta-item">' +
-              '<div class="meta-label">Salientes</div>' +
-              '<div class="meta-value">' + outgoing + '</div>' +
+              '<span class="label">Salientes:</span>' +
+              '<span class="value">' + outgoing + '</span>' +
             '</div>' +
           '</div>' +
         '</div>' +
       '</div>';
       
+      // Agregar sección de archivos que usan este archivo (si está modificado)
       if (data.modified && incomingEdges.length > 0) {
-        detailsContent += '<div class="file-card impact-section">' +
+        detailsContent += '<div class="impact-section">' +
           '<div class="impact-header">⚡ Archivos Afectados</div>' +
           '<div class="impact-list">';
         
@@ -1060,7 +1170,7 @@ function generateVisualization(graph, htmlFile) {
           const edgeNode = cy.getElementById(edge.from);
           if (edgeNode.length > 0) {
             const edgeData = edgeNode.data();
-            const lineInfo = edge.line ? 'línea ' + edge.line : '';
+            const lineInfo = edge.line ? ' (línea ' + edge.line + ')' : '';
             detailsContent += '<div class="impact-item">' +
               '<span class="impact-file">' + edgeData.label + '</span>' +
               '<span class="impact-line">' + lineInfo + '</span>' +
@@ -1071,8 +1181,9 @@ function generateVisualization(graph, htmlFile) {
         detailsContent += '</div></div>';
       }
       
+      // Agregar sección de archivos que este archivo usa (si está afectado)
       if (!data.modified && outgoingEdges.length > 0) {
-        detailsContent += '<div class="file-card impact-section">' +
+        detailsContent += '<div class="impact-section">' +
           '<div class="impact-header">📦 Usa Archivos Modificados</div>' +
           '<div class="impact-list">';
         
@@ -1080,7 +1191,7 @@ function generateVisualization(graph, htmlFile) {
           const edgeNode = cy.getElementById(edge.to);
           if (edgeNode.length > 0) {
             const edgeData = edgeNode.data();
-            const lineInfo = edge.line ? 'línea ' + edge.line : '';
+            const lineInfo = edge.line ? ' en línea ' + edge.line : '';
             detailsContent += '<div class="impact-item">' +
               '<span class="impact-file">' + edgeData.label + '</span>' +
               '<span class="impact-line">' + lineInfo + '</span>' +
@@ -1091,6 +1202,7 @@ function generateVisualization(graph, htmlFile) {
         detailsContent += '</div></div>';
       }
       
+      // Agregar sección de diff si existe
       if (hasDiff) {
         const escapedDiff = fullNode.diff
           .replace(/&/g, '&amp;')
@@ -1101,12 +1213,12 @@ function generateVisualization(graph, htmlFile) {
         
         const safeNodeId = data.id.replace(/[^a-zA-Z0-9]/g, '_');
         
-        detailsContent += '<div class="file-card diff-section">' +
+        detailsContent += '<div class="diff-section">' +
           '<div class="diff-header">' +
             '<div class="diff-title">📝 Cambios en el archivo</div>' +
             '<div class="diff-actions">' +
-              '<fluent-button appearance="secondary" size="small" data-node-id="' + data.id + '" data-action="copy">📋 Copiar</fluent-button>' +
-              '<fluent-button appearance="secondary" size="small" data-node-id="' + data.id + '" data-action="expand">🔍 Expandir</fluent-button>' +
+              '<button class="action-btn" data-node-id="' + data.id + '" data-action="copy">📋 Copiar</button>' +
+              '<button class="action-btn" data-node-id="' + data.id + '" data-action="expand">🔍 Expandir</button>' +
             '</div>' +
           '</div>' +
           '<div class="diff-content">' +
@@ -1114,9 +1226,11 @@ function generateVisualization(graph, htmlFile) {
           '</div>' +
         '</div>';
       } else if (data.modified && data.status === 'edit') {
-        detailsContent += '<div class="file-card diff-section">' +
+        detailsContent += '<div class="diff-section">' +
           '<div class="no-diff-message">' +
-            '<div class="no-diff-icon">ℹ️</div>' +
+            '<svg viewBox="0 0 24 24" fill="currentColor">' +
+              '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>' +
+            '</svg>' +
             '<p>No se pudieron obtener los cambios para este archivo</p>' +
           '</div>' +
         '</div>';
@@ -1124,8 +1238,9 @@ function generateVisualization(graph, htmlFile) {
       
       document.getElementById('node-info').innerHTML = detailsContent;
       
-      document.querySelectorAll('fluent-button[data-action]').forEach(btn => {
-        btn.addEventListener('click', function() {
+      // Agregar event listeners a los botones de acción
+      document.querySelectorAll('.action-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
           const nodeId = this.getAttribute('data-node-id');
           const action = this.getAttribute('data-action');
           
@@ -1137,6 +1252,7 @@ function generateVisualization(graph, htmlFile) {
         });
       });
       
+      // Aplicar resaltado de sintaxis al diff
       if (hasDiff) {
         const diffCodeId = 'diff-' + data.id.replace(/[^a-zA-Z0-9]/g, '_');
         const codeElement = document.getElementById(diffCodeId);
@@ -1146,10 +1262,12 @@ function generateVisualization(graph, htmlFile) {
       }
     });
     
+    // Evento de deselección
     cy.on('tap', function(evt) {
       if (evt.target === cy) {
         cy.elements().removeClass('highlighted').removeClass('dimmed');
         
+        // Reaplicar filtro actual
         if (currentFilter === 'modified') {
           cy.elements('node[modified = false]').addClass('dimmed');
         } else if (currentFilter === 'affected') {
@@ -1158,11 +1276,13 @@ function generateVisualization(graph, htmlFile) {
       }
     });
     
+    // Funciones de control
     function resetView() {
       cy.fit();
       cy.center();
       cy.elements().removeClass('highlighted').removeClass('dimmed');
       
+      // Reaplicar filtro
       if (currentFilter === 'modified') {
         cy.elements('node[modified = false]').addClass('dimmed');
       } else if (currentFilter === 'affected') {
@@ -1192,8 +1312,10 @@ function generateVisualization(graph, htmlFile) {
         navigator.clipboard.writeText(fullNode.diff).then(() => {
           const originalText = btn.textContent;
           btn.textContent = '✅ Copiado';
+          btn.style.background = '#238636';
           setTimeout(() => {
             btn.textContent = originalText;
+            btn.style.background = '#21262d';
           }, 2000);
         }).catch(err => {
           console.error('Error al copiar:', err);
@@ -1205,17 +1327,27 @@ function generateVisualization(graph, htmlFile) {
       const safeId = nodeId.replace(/[^a-zA-Z0-9]/g, '_');
       const diffElement = document.querySelector('#diff-' + safeId);
       
-      if (!diffElement) return;
+      if (!diffElement) {
+        console.error('No se encontró el elemento diff para:', nodeId);
+        return;
+      }
       
       const diffContent = diffElement.closest('.diff-content');
-      if (!diffContent) return;
       
+      if (!diffContent) {
+        console.error('No se encontró .diff-content para:', nodeId);
+        return;
+      }
+      
+      // Verificar si está expandido (maxHeight es 'none' o no está establecido)
       const isExpanded = diffContent.style.maxHeight === 'none' || diffContent.style.maxHeight === '';
       
       if (isExpanded) {
+        // Contraer
         diffContent.style.maxHeight = '500px';
         btn.textContent = '🔍 Expandir';
       } else {
+        // Expandir
         diffContent.style.maxHeight = 'none';
         btn.textContent = '🔽 Contraer';
       }
@@ -1224,7 +1356,6 @@ function generateVisualization(graph, htmlFile) {
 </body>
 </html>`;
 
-  const fs = require('fs');
   fs.writeFileSync(htmlFile, htmlContent);
 }
 
