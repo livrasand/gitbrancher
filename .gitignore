@@ -16,3 +16,6 @@ configstore.json
 configstore-*.json
 configstore/
 *.configstore.json
+
+# Grafos de conocimiento generados
+.gitbrancher/

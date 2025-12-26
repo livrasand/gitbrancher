@@ -293,8 +293,8 @@ function generateVisualization(graph, htmlFile) {
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: #0d1117;
-      color: #c9d1d9;
+      background: #0f1419;
+      color: #e6edf3;
       overflow: hidden;
     }
     
@@ -303,292 +303,590 @@ function generateVisualization(graph, htmlFile) {
       height: 100vh;
     }
     
+    /* Panel Principal - Grafo */
     #cy {
       flex: 1;
-      background: #0d1117;
+      background: #0f1419;
+      position: relative;
     }
     
-    .sidebar {
-      width: 350px;
-      background: #161b22;
-      border-left: 1px solid #30363d;
-      overflow-y: auto;
-      padding: 20px;
-    }
-    
-    .header {
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid #30363d;
-    }
-    
-    .header h1 {
-      font-size: 18px;
-      margin-bottom: 8px;
-      color: #58a6ff;
-    }
-    
-    .header .pr-info {
-      font-size: 13px;
-      color: #8b949e;
-      margin-bottom: 4px;
-    }
-    
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    
-    .stat-card {
-      background: #0d1117;
-      padding: 12px;
-      border-radius: 6px;
+    .graph-overlay {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(1, 4, 9, 0.8);
+      backdrop-filter: blur(10px);
       border: 1px solid #30363d;
-    }
-    
-    .stat-card .label {
-      font-size: 11px;
-      color: #8b949e;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-    
-    .stat-card .value {
-      font-size: 24px;
-      font-weight: bold;
-      color: #c9d1d9;
-    }
-    
-    .stat-card.modified .value { color: #f85149; }
-    .stat-card.affected .value { color: #d29922; }
-    .stat-card.deps .value { color: #58a6ff; }
-    
-    .node-details {
-      background: #0d1117;
-      padding: 15px;
-      border-radius: 6px;
-      border: 1px solid #30363d;
-      margin-bottom: 15px;
-    }
-    
-    .node-details h3 {
-      font-size: 14px;
-      margin-bottom: 10px;
-      color: #58a6ff;
-    }
-    
-    .node-details .detail-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-    
-    .node-details .detail-label {
-      color: #8b949e;
-    }
-    
-    .node-details .detail-value {
-      color: #c9d1d9;
-      font-weight: 500;
-    }
-    
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
       border-radius: 12px;
-      font-size: 11px;
+      padding: 16px;
+      z-index: 100;
+      max-width: 300px;
+    }
+    
+    .graph-overlay h3 {
+      color: #58a6ff;
+      font-size: 14px;
+      margin-bottom: 12px;
       font-weight: 600;
     }
     
-    .badge.modified {
-      background: #f851491a;
-      color: #f85149;
-      border: 1px solid #f85149;
+    .graph-overlay .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 12px;
     }
     
-    .badge.affected {
-      background: #d299221a;
-      color: #d29922;
-      border: 1px solid #d29922;
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      margin-right: 8px;
+      border: 2px solid #30363d;
     }
     
-    .badge.add { background: #238636; color: #fff; }
-    .badge.edit { background: #1f6feb; color: #fff; }
-    .badge.delete { background: #da3633; color: #fff; }
+    /* Panel Lateral */
+    .sidebar {
+      width: 500px;
+      background: #161b22;
+      border-left: 1px solid #21262d;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
     
-    .link-btn {
-      display: inline-block;
+    /* Header del PR */
+    .pr-header {
+      background: linear-gradient(135deg, #21262d 0%, #161b22 100%);
+      padding: 24px;
+      border-bottom: 1px solid #30363d;
+    }
+    
+    .pr-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f0f6fc;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    
+    .pr-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    
+    .pr-meta-item {
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      color: #8b949e;
+    }
+    
+    .pr-meta-item svg {
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    
+    .pr-branches {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .branch {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
       padding: 6px 12px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 12px;
+      color: #c9d1d9;
+    }
+    
+    .branch.source { border-color: #f85149; background: rgba(248, 81, 73, 0.1); }
+    .branch.target { border-color: #238636; background: rgba(35, 134, 54, 0.1); }
+    
+    .pr-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .btn-primary {
+      flex: 1;
       background: #238636;
       color: #fff;
-      text-decoration: none;
+      border: none;
       border-radius: 6px;
-      font-size: 12px;
-      margin-top: 10px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
       transition: background 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     
-    .link-btn:hover {
+    .btn-primary:hover {
       background: #2ea043;
     }
     
-    .controls {
-      margin-bottom: 15px;
+    /* Estadísticas */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 20px;
+      background: #0d1117;
+      border-bottom: 1px solid #21262d;
     }
     
-    .controls button {
-      width: 100%;
-      padding: 8px;
-      background: #21262d;
-      color: #c9d1d9;
+    .stat-card {
+      background: #161b22;
       border: 1px solid #30363d;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      margin-bottom: 8px;
-      transition: background 0.2s;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
     }
     
-    .controls button:hover {
+    .stat-card .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px;
+      font-size: 16px;
+    }
+    
+    .stat-card.modified .icon { background: #f851491a; color: #f85149; }
+    .stat-card.affected .icon { background: #d299221a; color: #d29922; }
+    .stat-card.dependencies .icon { background: #58a6ff1a; color: #58a6ff; }
+    .stat-card.total .icon { background: #2386361a; color: #238636; }
+    
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f0f6fc;
+      margin-bottom: 4px;
+    }
+    
+    .stat-card .label {
+      font-size: 12px;
+      color: #8b949e;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Contenido Principal */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Filtros y Controles */
+    .controls-section {
+      padding: 16px 20px;
+      background: #161b22;
+      border-bottom: 1px solid #21262d;
+    }
+    
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f0f6fc;
+      margin-bottom: 12px;
+    }
+    
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .tab-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .tab-btn.active {
+      background: #58a6ff;
+      border-color: #58a6ff;
+      color: #fff;
+    }
+    
+    .control-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    
+    .control-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    
+    .control-btn:hover {
       background: #30363d;
+      border-color: #58a6ff;
+    }
+    
+    /* Panel de Detalles */
+    .details-panel {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
     }
     
     .empty-state {
       text-align: center;
-      padding: 40px 20px;
+      padding: 60px 20px;
       color: #8b949e;
     }
     
     .empty-state svg {
-      width: 48px;
-      height: 48px;
-      margin-bottom: 12px;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
       opacity: 0.5;
     }
     
-    .diff-container {
-      margin-top: 15px;
+    .empty-state h3 {
+      font-size: 16px;
+      color: #f0f6fc;
+      margin-bottom: 8px;
+    }
+    
+    .empty-state p {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    /* Detalles del Archivo */
+    .file-details {
       background: #0d1117;
       border: 1px solid #30363d;
-      border-radius: 6px;
+      border-radius: 12px;
       overflow: hidden;
     }
     
-    .diff-header {
-      padding: 10px 15px;
+    .file-header {
+      padding: 16px 20px;
       background: #161b22;
       border-bottom: 1px solid #30363d;
-      font-size: 12px;
+    }
+    
+    .file-title {
+      font-size: 16px;
       font-weight: 600;
       color: #58a6ff;
+      margin-bottom: 8px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 8px;
+    }
+    
+    .file-path {
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 12px;
+      color: #8b949e;
+      background: #0d1117;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #30363d;
+      word-break: break-all;
+    }
+    
+    .file-meta {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    
+    .meta-item .label {
+      color: #8b949e;
+      font-weight: 500;
+    }
+    
+    .meta-item .value {
+      color: #f0f6fc;
+      font-weight: 600;
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .badge.modified { background: #f851491a; color: #f85149; border: 1px solid #f85149; }
+    .badge.affected { background: #d299221a; color: #d29922; border: 1px solid #d29922; }
+    .badge.edit { background: #1f6feb1a; color: #1f6feb; border: 1px solid #1f6feb; }
+    .badge.add { background: #2386361a; color: #238636; border: 1px solid #238636; }
+    .badge.delete { background: #da36331a; color: #da3633; border: 1px solid #da3633; }
+    
+    /* Diff Section */
+    .diff-section {
+      margin-top: 20px;
+    }
+    
+    .diff-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+    }
+    
+    .diff-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f0f6fc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .diff-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .action-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .action-btn:hover {
+      background: #30363d;
+      border-color: #58a6ff;
     }
     
     .diff-content {
-      max-height: 400px;
+      max-height: 500px;
       overflow-y: auto;
-      font-size: 12px;
-      line-height: 1.5;
+      background: #0d1117;
     }
     
     .diff-content pre {
       margin: 0;
-      padding: 15px;
-      background: #0d1117;
+      padding: 20px;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 12px;
+      line-height: 1.6;
       overflow-x: auto;
     }
     
     .diff-content code {
-      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-      font-size: 12px;
+      background: transparent;
     }
     
     .hljs {
       background: #0d1117 !important;
-      color: #c9d1d9;
+      color: #e6edf3;
     }
     
     .hljs-addition {
-      background: #23863633;
-      color: #7ee787;
+      background: rgba(35, 134, 54, 0.15);
+      color: #56d364;
       display: block;
+      margin: 0 -20px;
+      padding: 0 20px;
+      border-left: 3px solid #238636;
     }
     
     .hljs-deletion {
-      background: #da363333;
-      color: #ffa198;
+      background: rgba(248, 81, 73, 0.15);
+      color: #f85149;
       display: block;
+      margin: 0 -20px;
+      padding: 0 20px;
+      border-left: 3px solid #da3633;
     }
     
     .no-diff-message {
-      padding: 20px;
+      padding: 40px 20px;
       text-align: center;
       color: #8b949e;
-      font-size: 13px;
+      background: #0d1117;
     }
     
-    .copy-btn {
-      background: #21262d;
-      border: 1px solid #30363d;
-      color: #c9d1d9;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      cursor: pointer;
-      transition: background 0.2s;
+    .no-diff-message svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
     }
     
-    .copy-btn:hover {
-      background: #30363d;
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .file-details, .diff-section {
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .sidebar { width: 350px; }
+    }
+    
+    @media (max-width: 1000px) {
+      .container { flex-direction: column; }
+      .sidebar { width: 100%; height: 50vh; }
+      #cy { height: 50vh; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div id="cy"></div>
+    <!-- Panel Principal - Grafo -->
+    <div id="cy">
+      <div class="graph-overlay">
+        <h3>📊 Leyenda del Grafo</h3>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #f85149;"></div>
+          <span>Archivos Modificados</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #d29922;"></div>
+          <span>Archivos Afectados</span>
+        </div>
+        <div class="legend-item">
+          <span style="margin-left: 24px;">Conexiones = Dependencias</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Panel Lateral -->
     <div class="sidebar">
-      <div class="header">
-        <h1>PR #${graph.meta.prId}</h1>
-        <div class="pr-info">${graph.meta.prTitle}</div>
-        <div class="pr-info">${graph.meta.head} → ${graph.meta.base}</div>
+      <!-- Header del PR -->
+      <div class="pr-header">
+        <div class="pr-title">PR #${graph.meta.prId}</div>
+        <div class="pr-meta">
+          <div class="pr-meta-item">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 9.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
+              <path fill-rule="evenodd" d="M8 0a8 8 0 100 16A8 8 0 000 8a8 8 0 000-16zM1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0z"/>
+            </svg>
+            ${graph.meta.prTitle}
+          </div>
+          <div class="pr-meta-item">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+              <path d="M11.536 3.464a5 5 0 010 7.072L8 8.536l-3.536 1.928a5 5 0 010-7.072L8 7.464l3.536-1.928z"/>
+            </svg>
+            Rama: ${graph.meta.head} → ${graph.meta.base}
+          </div>
+        </div>
+        
+        <div class="pr-branches">
+          <span class="branch source">${graph.meta.head}</span>
+          <span class="branch target">${graph.meta.base}</span>
+        </div>
       </div>
       
-      <div class="stats">
+      <!-- Estadísticas -->
+      <div class="stats-grid">
         <div class="stat-card modified">
-          <div class="label">Modificados</div>
+          <div class="icon">📝</div>
           <div class="value">${graph.meta.stats.modifiedFiles}</div>
+          <div class="label">Modificados</div>
         </div>
         <div class="stat-card affected">
-          <div class="label">Afectados</div>
+          <div class="icon">⚡</div>
           <div class="value">${graph.meta.stats.affectedFiles}</div>
+          <div class="label">Afectados</div>
         </div>
-        <div class="stat-card deps">
-          <div class="label">Dependencias</div>
+        <div class="stat-card dependencies">
+          <div class="icon">🔗</div>
           <div class="value">${graph.meta.stats.dependencies}</div>
+          <div class="label">Dependencias</div>
         </div>
-        <div class="stat-card">
-          <div class="label">Total</div>
+        <div class="stat-card total">
+          <div class="icon">📊</div>
           <div class="value">${graph.meta.stats.totalFiles}</div>
+          <div class="label">Total</div>
         </div>
       </div>
       
-      <div class="controls">
-        <button onclick="resetView()">🔄 Resetear Vista</button>
-        <button onclick="fitToScreen()">📐 Ajustar a Pantalla</button>
-        <button onclick="toggleLayout()">🔀 Cambiar Layout</button>
-      </div>
-      
-      <div id="node-info">
-        <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-          </svg>
-          <p>Haz clic en un nodo para ver detalles</p>
+      <!-- Contenido Principal -->
+      <div class="main-content">
+        <!-- Controles -->
+        <div class="controls-section">
+          <div class="section-title">🎛️ Controles del Grafo</div>
+          <div class="filter-tabs">
+            <button class="tab-btn active" onclick="filterNodes('all')">Todos</button>
+            <button class="tab-btn" onclick="filterNodes('modified')">Modificados</button>
+            <button class="tab-btn" onclick="filterNodes('affected')">Afectados</button>
+          </div>
+          <div class="control-buttons">
+            <button class="control-btn" onclick="resetView()">🔄 Reset</button>
+            <button class="control-btn" onclick="fitToScreen()">📐 Ajustar</button>
+            <button class="control-btn" onclick="toggleLayout()">🔀 Layout</button>
+          </div>
+        </div>
+        
+        <!-- Panel de Detalles -->
+        <div class="details-panel">
+          <div id="node-info">
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+              </svg>
+              <h3>Haz clic en un archivo</h3>
+              <p>Selecciona cualquier nodo del grafo para ver sus detalles, cambios y dependencias.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -604,7 +902,8 @@ function generateVisualization(graph, htmlFile) {
           label: node.label,
           modified: node.modified,
           status: node.status,
-          url: node.url
+          url: node.url,
+          diff: node.diff
         }
       })),
       ...graphData.edges.map(edge => ({
@@ -617,6 +916,7 @@ function generateVisualization(graph, htmlFile) {
     ];
     
     let currentLayout = 'cose';
+    let currentFilter = 'all';
     
     const cy = cytoscape({
       container: document.getElementById('cy'),
@@ -629,12 +929,13 @@ function generateVisualization(graph, htmlFile) {
             'border-width': 2,
             'border-color': '#30363d',
             'label': 'data(label)',
-            'color': '#c9d1d9',
+            'color': '#e6edf3',
             'text-valign': 'center',
             'text-halign': 'center',
-            'font-size': '10px',
-            'width': 40,
-            'height': 40
+            'font-size': '11px',
+            'width': 45,
+            'height': 45,
+            'font-weight': '500'
           }
         },
         {
@@ -660,14 +961,15 @@ function generateVisualization(graph, htmlFile) {
             'target-arrow-color': '#30363d',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
-            'arrow-scale': 1
+            'arrow-scale': 1.2
           }
         },
         {
           selector: 'node:selected',
           style: {
             'border-color': '#58a6ff',
-            'border-width': 4
+            'border-width': 4,
+            'background-color': (ele) => ele.data('modified') ? '#f85149' : '#d29922'
           }
         },
         {
@@ -678,48 +980,110 @@ function generateVisualization(graph, htmlFile) {
             'target-arrow-color': '#58a6ff',
             'border-color': '#58a6ff'
           }
+        },
+        {
+          selector: '.dimmed',
+          style: {
+            'opacity': 0.3
+          }
         }
       ],
       layout: {
         name: 'cose',
         animate: true,
         animationDuration: 500,
-        nodeRepulsion: 8000,
-        idealEdgeLength: 100,
-        edgeElasticity: 100
+        nodeRepulsion: 10000,
+        idealEdgeLength: 120,
+        edgeElasticity: 100,
+        gravity: 0.1
       }
     });
     
+    // Funciones de filtro
+    function filterNodes(filter) {
+      currentFilter = filter;
+      
+      // Actualizar botones
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      // Aplicar filtro
+      if (filter === 'all') {
+        cy.elements().removeClass('dimmed');
+      } else if (filter === 'modified') {
+        cy.elements('node[modified = true]').removeClass('dimmed');
+        cy.elements('node[modified = false]').addClass('dimmed');
+      } else if (filter === 'affected') {
+        cy.elements('node[modified = false]').removeClass('dimmed');
+        cy.elements('node[modified = true]').addClass('dimmed');
+      }
+      
+      cy.fit();
+    }
+    
+    // Evento de selección de nodo
     cy.on('tap', 'node', function(evt) {
       const node = evt.target;
       const data = node.data();
       
-      cy.elements().removeClass('highlighted');
+      cy.elements().removeClass('highlighted').removeClass('dimmed');
       
+      // Resaltar nodo seleccionado y conexiones
       node.addClass('highlighted');
       node.connectedEdges().addClass('highlighted');
       node.neighborhood('node').addClass('highlighted');
       
+      // Aplicar filtro actual si no es 'all'
+      if (currentFilter === 'modified') {
+        cy.elements('node[modified = false]').addClass('dimmed');
+      } else if (currentFilter === 'affected') {
+        cy.elements('node[modified = true]').addClass('dimmed');
+      }
+      
+      // Buscar datos completos del nodo
+      const fullNode = graphData.nodes.find(n => n.id === data.id);
+      const hasDiff = fullNode && fullNode.diff;
+      
+      // Generar contenido del panel de detalles
       const statusBadge = data.modified 
         ? '<span class="badge modified">Modificado</span>'
         : '<span class="badge affected">Afectado</span>';
       
       const changeTypeBadge = data.status 
-        ? \`<span class="badge \${data.status}">\${data.status.toUpperCase()}</span>\`
+        ? '<span class="badge ' + data.status + '">' + data.status.toUpperCase() + '</span>'
         : '';
       
       const azureLink = data.url 
-        ? \`<a href="\${data.url}" target="_blank" class="link-btn">🔗 Ver en Azure DevOps</a>\`
+        ? '<a href="' + data.url + '" target="_blank" class="btn-primary" style="margin-top: 16px;">🔗 Ver en Azure DevOps</a>'
         : '';
       
       const incoming = node.incomers('node').length;
       const outgoing = node.outgoers('node').length;
       
-      // Buscar el nodo completo en graphData para obtener el diff
-      const fullNode = graphData.nodes.find(n => n.id === data.id);
-      const hasDiff = fullNode && fullNode.diff;
+      // Contenido principal del archivo
+      let detailsContent = '<div class="file-details">' +
+        '<div class="file-header">' +
+          '<div class="file-title">' +
+            '📄 ' + data.label +
+            ' ' + statusBadge + ' ' + changeTypeBadge +
+          '</div>' +
+          '<div class="file-path">' + data.id + '</div>' +
+          '<div class="file-meta">' +
+            '<div class="meta-item">' +
+              '<span class="label">Entrantes:</span>' +
+              '<span class="value">' + incoming + '</span>' +
+            '</div>' +
+            '<div class="meta-item">' +
+              '<span class="label">Salientes:</span>' +
+              '<span class="value">' + outgoing + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
       
-      let diffSection = '';
+      // Agregar sección de diff si existe
       if (hasDiff) {
         const escapedDiff = fullNode.diff
           .replace(/&/g, '&amp;')
@@ -728,50 +1092,46 @@ function generateVisualization(graph, htmlFile) {
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#039;');
         
-        diffSection = \`
-          <div class="diff-container">
-            <div class="diff-header">
-              <span>📝 Cambios en el archivo</span>
-              <button class="copy-btn" onclick="copyDiff('\${data.id}')">Copiar</button>
-            </div>
-            <div class="diff-content">
-              <pre><code class="language-diff" id="diff-\${data.id.replace(/[^a-zA-Z0-9]/g, '_')}">\${escapedDiff}</code></pre>
-            </div>
-          </div>
-        \`;
+        const safeNodeId = data.id.replace(/[^a-zA-Z0-9]/g, '_');
+        
+        detailsContent += '<div class="diff-section">' +
+          '<div class="diff-header">' +
+            '<div class="diff-title">📝 Cambios en el archivo</div>' +
+            '<div class="diff-actions">' +
+              '<button class="action-btn" data-node-id="' + data.id + '" data-action="copy">📋 Copiar</button>' +
+              '<button class="action-btn" data-node-id="' + data.id + '" data-action="expand">🔍 Expandir</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="diff-content">' +
+            '<pre><code class="language-diff" id="diff-' + safeNodeId + '">' + escapedDiff + '</code></pre>' +
+          '</div>' +
+        '</div>';
       } else if (data.modified && data.status === 'edit') {
-        diffSection = \`
-          <div class="diff-container">
-            <div class="no-diff-message">
-              ℹ️ No se pudo obtener el diff para este archivo
-            </div>
-          </div>
-        \`;
+        detailsContent += '<div class="diff-section">' +
+          '<div class="no-diff-message">' +
+            '<svg viewBox="0 0 24 24" fill="currentColor">' +
+              '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>' +
+            '</svg>' +
+            '<p>No se pudieron obtener los cambios para este archivo</p>' +
+          '</div>' +
+        '</div>';
       }
       
-      document.getElementById('node-info').innerHTML = \`
-        <div class="node-details">
-          <h3>\${data.label}</h3>
-          <div class="detail-row">
-            <span class="detail-label">Ruta:</span>
-            <span class="detail-value" style="font-size: 11px; word-break: break-all;">\${data.id}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Estado:</span>
-            <span>\${statusBadge} \${changeTypeBadge}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Dependencias entrantes:</span>
-            <span class="detail-value">\${incoming}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Dependencias salientes:</span>
-            <span class="detail-value">\${outgoing}</span>
-          </div>
-          \${azureLink}
-        </div>
-        \${diffSection}
-      \`;
+      document.getElementById('node-info').innerHTML = detailsContent;
+      
+      // Agregar event listeners a los botones de acción
+      document.querySelectorAll('.action-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          const nodeId = this.getAttribute('data-node-id');
+          const action = this.getAttribute('data-action');
+          
+          if (action === 'copy') {
+            copyDiff(nodeId, this);
+          } else if (action === 'expand') {
+            expandDiff(nodeId, this);
+          }
+        });
+      });
       
       // Aplicar resaltado de sintaxis al diff
       if (hasDiff) {
@@ -783,16 +1143,32 @@ function generateVisualization(graph, htmlFile) {
       }
     });
     
+    // Evento de deselección
     cy.on('tap', function(evt) {
       if (evt.target === cy) {
-        cy.elements().removeClass('highlighted');
+        cy.elements().removeClass('highlighted').removeClass('dimmed');
+        
+        // Reaplicar filtro actual
+        if (currentFilter === 'modified') {
+          cy.elements('node[modified = false]').addClass('dimmed');
+        } else if (currentFilter === 'affected') {
+          cy.elements('node[modified = true]').addClass('dimmed');
+        }
       }
     });
     
+    // Funciones de control
     function resetView() {
       cy.fit();
       cy.center();
-      cy.elements().removeClass('highlighted');
+      cy.elements().removeClass('highlighted').removeClass('dimmed');
+      
+      // Reaplicar filtro
+      if (currentFilter === 'modified') {
+        cy.elements('node[modified = false]').addClass('dimmed');
+      } else if (currentFilter === 'affected') {
+        cy.elements('node[modified = true]').addClass('dimmed');
+      }
     }
     
     function fitToScreen() {
@@ -811,13 +1187,12 @@ function generateVisualization(graph, htmlFile) {
       }).run();
     }
     
-    function copyDiff(nodeId) {
+    function copyDiff(nodeId, btn) {
       const fullNode = graphData.nodes.find(n => n.id === nodeId);
       if (fullNode && fullNode.diff) {
         navigator.clipboard.writeText(fullNode.diff).then(() => {
-          const btn = event.target;
           const originalText = btn.textContent;
-          btn.textContent = '✓ Copiado';
+          btn.textContent = '✅ Copiado';
           btn.style.background = '#238636';
           setTimeout(() => {
             btn.textContent = originalText;
@@ -826,6 +1201,36 @@ function generateVisualization(graph, htmlFile) {
         }).catch(err => {
           console.error('Error al copiar:', err);
         });
+      }
+    }
+    
+    function expandDiff(nodeId, btn) {
+      const safeId = nodeId.replace(/[^a-zA-Z0-9]/g, '_');
+      const diffElement = document.querySelector('#diff-' + safeId);
+      
+      if (!diffElement) {
+        console.error('No se encontró el elemento diff para:', nodeId);
+        return;
+      }
+      
+      const diffContent = diffElement.closest('.diff-content');
+      
+      if (!diffContent) {
+        console.error('No se encontró .diff-content para:', nodeId);
+        return;
+      }
+      
+      // Verificar si está expandido (maxHeight es 'none' o no está establecido)
+      const isExpanded = diffContent.style.maxHeight === 'none' || diffContent.style.maxHeight === '';
+      
+      if (isExpanded) {
+        // Contraer
+        diffContent.style.maxHeight = '500px';
+        btn.textContent = '🔍 Expandir';
+      } else {
+        // Expandir
+        diffContent.style.maxHeight = 'none';
+        btn.textContent = '🔽 Contraer';
       }
     }
   </script>
@@ -847,7 +1252,7 @@ function exportToMermaid(graph) {
     const style = node.modified ? ':::modified' : ':::affected';
     const id = node.id.replace(/[^a-zA-Z0-9]/g, '_');
     const label = node.label.replace(/"/g, "'");
-    mermaid += `  ${id}["${label}"]${style}\n`;
+    mermaid += '  ' + id + '["' + label + '"]' + style + '\n';
   });
   
   mermaid += '\n';
@@ -855,7 +1260,7 @@ function exportToMermaid(graph) {
   graph.edges.forEach(edge => {
     const fromId = edge.from.replace(/[^a-zA-Z0-9]/g, '_');
     const toId = edge.to.replace(/[^a-zA-Z0-9]/g, '_');
-    mermaid += `  ${fromId} --> ${toId}\n`;
+    mermaid += '  ' + fromId + ' --> ' + toId + '\n';
   });
   
   mermaid += '\n';
@@ -905,19 +1310,27 @@ async function analyzePullRequest(options) {
 
     console.log(chalk.cyan(`\nAnalizando dependencias...`));
 
-    // Guardar el archivo JSON
-    const outputFile = options.output || 'graph.json';
+    // Crear directorio .gitbrancher si no existe
+    const gitbrancherDir = path.join(repoRoot, '.gitbrancher');
+    if (!fs.existsSync(gitbrancherDir)) {
+      fs.mkdirSync(gitbrancherDir, { recursive: true });
+    }
+
+    // Guardar el archivo JSON con el ID del PR
+    const outputFile = options.output || path.join(gitbrancherDir, `pr-${options.prId}.json`);
     fs.writeFileSync(outputFile, JSON.stringify(impactGraph, null, 2));
 
-    console.log(chalk.green(`\n✓ Grafo de impacto generado en: ${outputFile}`));
+    console.log(chalk.green(`\n✓ Grafo de conocimiento generado en: ${outputFile}`));
     console.log(chalk.gray(`Archivos modificados: ${impactGraph.meta.stats.modifiedFiles} | Archivos afectados: ${impactGraph.meta.stats.affectedFiles} | Dependencias: ${impactGraph.meta.stats.dependencies}`));
 
     // Generar visualización HTML si se solicita
     if (options.html) {
-      const htmlFile = outputFile.replace('.json', '.html');
+      const htmlFile = options.output 
+        ? outputFile.replace('.json', '.html')
+        : path.join(gitbrancherDir, `pr-${options.prId}.html`);
       generateVisualization(impactGraph, htmlFile);
       console.log(chalk.green(`\n✓ Visualización HTML generada en: ${htmlFile}`));
-      console.log(chalk.gray('Abre el archivo en tu navegador para explorar el grafo interactivo'));
+      console.log(chalk.gray('Abre el archivo en tu navegador para explorar el grafo de conocimiento'));
       
       // Abrir automáticamente en el navegador si se solicita
       if (options.open) {
@@ -934,7 +1347,9 @@ async function analyzePullRequest(options) {
 
     // Generar diagrama Mermaid si se solicita
     if (options.mermaid) {
-      const mermaidFile = outputFile.replace('.json', '.mmd');
+      const mermaidFile = options.output
+        ? outputFile.replace('.json', '.mmd')
+        : path.join(gitbrancherDir, `pr-${options.prId}.mmd`);
       const mermaidContent = exportToMermaid(impactGraph);
       fs.writeFileSync(mermaidFile, mermaidContent);
       console.log(chalk.green(`\n✓ Diagrama Mermaid generado en: ${mermaidFile}`));
