@@ -663,6 +663,63 @@ function generateVisualization(graph, htmlFile) {
     .badge.add { background: #2386361a; color: #238636; border: 1px solid #238636; }
     .badge.delete { background: #da36331a; color: #da3633; border: 1px solid #da3633; }
     
+    /* Impact Section */
+    .impact-section {
+      margin-top: 20px;
+      background: #161b22;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .impact-header {
+      padding: 12px 20px;
+      background: #1c2128;
+      border-bottom: 1px solid #30363d;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f0f6fc;
+    }
+    
+    .impact-list {
+      padding: 12px 20px;
+    }
+    
+    .impact-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      background: #0d1117;
+      border-radius: 6px;
+      border: 1px solid #21262d;
+      transition: all 0.2s;
+    }
+    
+    .impact-item:hover {
+      border-color: #58a6ff;
+      background: #161b22;
+    }
+    
+    .impact-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .impact-file {
+      font-size: 12px;
+      color: #e6edf3;
+      font-weight: 500;
+    }
+    
+    .impact-line {
+      font-size: 11px;
+      color: #8b949e;
+      font-family: 'SF Mono', Monaco, monospace;
+      background: #21262d;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    
     /* Diff Section */
     .diff-section {
       margin-top: 20px;
@@ -910,7 +967,8 @@ function generateVisualization(graph, htmlFile) {
         data: {
           source: edge.from,
           target: edge.to,
-          type: edge.type || 'imports'
+          type: edge.type || 'imports',
+          line: edge.line
         }
       }))
     ];
@@ -1062,6 +1120,17 @@ function generateVisualization(graph, htmlFile) {
       const incoming = node.incomers('node').length;
       const outgoing = node.outgoers('node').length;
       
+      // Obtener información de dependencias con líneas
+      const incomingEdges = node.incomers('edge').map(edge => ({
+        from: edge.data('source'),
+        line: edge.data('line')
+      }));
+      
+      const outgoingEdges = node.outgoers('edge').map(edge => ({
+        to: edge.data('target'),
+        line: edge.data('line')
+      }));
+      
       // Contenido principal del archivo
       let detailsContent = '<div class="file-details">' +
         '<div class="file-header">' +
@@ -1082,6 +1151,48 @@ function generateVisualization(graph, htmlFile) {
           '</div>' +
         '</div>' +
       '</div>';
+      
+      // Agregar sección de archivos que usan este archivo (si está modificado)
+      if (data.modified && incomingEdges.length > 0) {
+        detailsContent += '<div class="impact-section">' +
+          '<div class="impact-header">⚡ Archivos Afectados</div>' +
+          '<div class="impact-list">';
+        
+        incomingEdges.forEach(edge => {
+          const edgeNode = cy.getElementById(edge.from);
+          if (edgeNode.length > 0) {
+            const edgeData = edgeNode.data();
+            const lineInfo = edge.line ? ' (línea ' + edge.line + ')' : '';
+            detailsContent += '<div class="impact-item">' +
+              '<span class="impact-file">' + edgeData.label + '</span>' +
+              '<span class="impact-line">' + lineInfo + '</span>' +
+            '</div>';
+          }
+        });
+        
+        detailsContent += '</div></div>';
+      }
+      
+      // Agregar sección de archivos que este archivo usa (si está afectado)
+      if (!data.modified && outgoingEdges.length > 0) {
+        detailsContent += '<div class="impact-section">' +
+          '<div class="impact-header">📦 Usa Archivos Modificados</div>' +
+          '<div class="impact-list">';
+        
+        outgoingEdges.forEach(edge => {
+          const edgeNode = cy.getElementById(edge.to);
+          if (edgeNode.length > 0) {
+            const edgeData = edgeNode.data();
+            const lineInfo = edge.line ? ' en línea ' + edge.line : '';
+            detailsContent += '<div class="impact-item">' +
+              '<span class="impact-file">' + edgeData.label + '</span>' +
+              '<span class="impact-line">' + lineInfo + '</span>' +
+            '</div>';
+          }
+        });
+        
+        detailsContent += '</div></div>';
+      }
       
       // Agregar sección de diff si existe
       if (hasDiff) {

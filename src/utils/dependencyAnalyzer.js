@@ -57,11 +57,13 @@ function analyzeDependencies(files, repoRoot, options = {}) {
  * Extrae los imports de un archivo según su tipo
  * @param {string} content - Contenido del archivo
  * @param {string} filePath - Path del archivo
- * @returns {Array<string>} Lista de paths importados
+ * @param {boolean} includeLineNumbers - Si debe incluir números de línea
+ * @returns {Array<string|Object>} Lista de paths importados o objetos {path, line}
  */
-function extractImports(content, filePath) {
+function extractImports(content, filePath, includeLineNumbers = false) {
   const imports = [];
   const ext = path.extname(filePath).toLowerCase();
+  const lines = content.split('\n');
 
   // JavaScript/TypeScript/Svelte
   if (['.js', '.ts', '.jsx', '.tsx', '.svelte', '.mjs', '.cjs'].includes(ext)) {
@@ -69,19 +71,34 @@ function extractImports(content, filePath) {
     const importRegex = /import\s+(?:[\w{},\s*]+\s+from\s+)?['"]([^'"]+)['"]/g;
     let match;
     while ((match = importRegex.exec(content)) !== null) {
-      imports.push(match[1]);
+      if (includeLineNumbers) {
+        const lineNumber = content.substring(0, match.index).split('\n').length;
+        imports.push({ path: match[1], line: lineNumber });
+      } else {
+        imports.push(match[1]);
+      }
     }
 
     // require('...')
     const requireRegex = /require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
     while ((match = requireRegex.exec(content)) !== null) {
-      imports.push(match[1]);
+      if (includeLineNumbers) {
+        const lineNumber = content.substring(0, match.index).split('\n').length;
+        imports.push({ path: match[1], line: lineNumber });
+      } else {
+        imports.push(match[1]);
+      }
     }
 
     // dynamic import()
     const dynamicImportRegex = /import\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
     while ((match = dynamicImportRegex.exec(content)) !== null) {
-      imports.push(match[1]);
+      if (includeLineNumbers) {
+        const lineNumber = content.substring(0, match.index).split('\n').length;
+        imports.push({ path: match[1], line: lineNumber });
+      } else {
+        imports.push(match[1]);
+      }
     }
   }
 
@@ -91,7 +108,12 @@ function extractImports(content, filePath) {
     const cssImportRegex = /@import\s+['"]([^'"]+)['"]/g;
     let match;
     while ((match = cssImportRegex.exec(content)) !== null) {
-      imports.push(match[1]);
+      if (includeLineNumbers) {
+        const lineNumber = content.substring(0, match.index).split('\n').length;
+        imports.push({ path: match[1], line: lineNumber });
+      } else {
+        imports.push(match[1]);
+      }
     }
   }
 
@@ -188,20 +210,23 @@ function findReverseDependencies(modifiedPaths, repoRoot, affectedFiles, edges, 
 
         try {
           const content = fs.readFileSync(filePath, 'utf-8');
-          const imports = extractImports(content, filePath);
+          const imports = extractImports(content, filePath, true); // Incluir números de línea
 
-          imports.forEach(importPath => {
+          imports.forEach(importInfo => {
+            const importPath = typeof importInfo === 'string' ? importInfo : importInfo.path;
+            const lineNumber = typeof importInfo === 'object' ? importInfo.line : null;
             const resolvedPath = resolveImportPath(importPath, filePath, repoRoot);
             
             if (resolvedPath === currentPath) {
-              const relativePath = filePath.replace(repoRoot, '');
+              const relativePath = filePath.replace(repoRoot, '').replace(/^\//, '');
               
               if (!modifiedPaths.has(relativePath)) {
                 affectedFiles.add(relativePath);
                 edges.push({
                   from: relativePath,
                   to: currentPath,
-                  relation: 'imports'
+                  relation: 'imports',
+                  line: lineNumber
                 });
 
                 queue.push({ path: relativePath, depth: depth + 1 });
