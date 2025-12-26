@@ -219,6 +219,9 @@ prCommand
   .command('analyze <prId>')
   .description('Analiza un PR específico y genera el grafo de impacto')
   .option('-o, --output <file>', 'Archivo de salida para el grafo JSON', 'graph.json')
+  .option('--html', 'Generar visualización HTML interactiva')
+  .option('-m, --mermaid', 'Generar diagrama en formato Mermaid (.mmd)')
+  .option('--open', 'Abrir automáticamente la visualización en el navegador (requiere --html)')
   .action(async (prId, options) => {
     printBanner();
     await analyzePullRequest({ prId, ...options });

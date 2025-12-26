@@ -6,6 +6,7 @@ const { fetchPullRequestDetails } = require('../../integrations/azureDevOpsServi
 const { getEffectiveAzureConfig } = require('../../config/azureConfig');
 const { analyzeDependencies } = require('../../utils/dependencyAnalyzer');
 const pkg = require('../../../package.json');
+const os = require('os');
 
 /**
  * Obtiene el nombre del repositorio desde el remote origin de Git
@@ -89,6 +90,7 @@ function generateImpactGraph(prDetails, repoRoot) {
       head: prDetails.sourceRefName,
       prId: prDetails.id,
       prTitle: prDetails.title,
+      prUrl: prDetails.url,
       generatedAt: new Date().toISOString(),
       stats: {
         modifiedFiles: modifiedNodes.length,
@@ -100,6 +102,460 @@ function generateImpactGraph(prDetails, repoRoot) {
     nodes: allNodes,
     edges: edges
   };
+}
+
+/**
+ * Genera un visualizador HTML interactivo con Cytoscape.js
+ * @param {Object} graph - Grafo de impacto
+ * @param {string} htmlFile - Ruta del archivo HTML de salida
+ */
+function generateVisualization(graph, htmlFile) {
+  const htmlContent = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PR Impact Graph - ${graph.meta.prId}</title>
+  <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      overflow: hidden;
+    }
+    
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    
+    #cy {
+      flex: 1;
+      background: #0d1117;
+    }
+    
+    .sidebar {
+      width: 350px;
+      background: #161b22;
+      border-left: 1px solid #30363d;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    
+    .header {
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #30363d;
+    }
+    
+    .header h1 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: #58a6ff;
+    }
+    
+    .header .pr-info {
+      font-size: 13px;
+      color: #8b949e;
+      margin-bottom: 4px;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-card {
+      background: #0d1117;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+    }
+    
+    .stat-card .label {
+      font-size: 11px;
+      color: #8b949e;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    
+    .stat-card .value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #c9d1d9;
+    }
+    
+    .stat-card.modified .value { color: #f85149; }
+    .stat-card.affected .value { color: #d29922; }
+    .stat-card.deps .value { color: #58a6ff; }
+    
+    .node-details {
+      background: #0d1117;
+      padding: 15px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      margin-bottom: 15px;
+    }
+    
+    .node-details h3 {
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: #58a6ff;
+    }
+    
+    .node-details .detail-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    
+    .node-details .detail-label {
+      color: #8b949e;
+    }
+    
+    .node-details .detail-value {
+      color: #c9d1d9;
+      font-weight: 500;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .badge.modified {
+      background: #f851491a;
+      color: #f85149;
+      border: 1px solid #f85149;
+    }
+    
+    .badge.affected {
+      background: #d299221a;
+      color: #d29922;
+      border: 1px solid #d29922;
+    }
+    
+    .badge.add { background: #238636; color: #fff; }
+    .badge.edit { background: #1f6feb; color: #fff; }
+    .badge.delete { background: #da3633; color: #fff; }
+    
+    .link-btn {
+      display: inline-block;
+      padding: 6px 12px;
+      background: #238636;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 12px;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+    
+    .link-btn:hover {
+      background: #2ea043;
+    }
+    
+    .controls {
+      margin-bottom: 15px;
+    }
+    
+    .controls button {
+      width: 100%;
+      padding: 8px;
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      margin-bottom: 8px;
+      transition: background 0.2s;
+    }
+    
+    .controls button:hover {
+      background: #30363d;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #8b949e;
+    }
+    
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="cy"></div>
+    <div class="sidebar">
+      <div class="header">
+        <h1>PR #${graph.meta.prId}</h1>
+        <div class="pr-info">${graph.meta.prTitle}</div>
+        <div class="pr-info">${graph.meta.head} → ${graph.meta.base}</div>
+      </div>
+      
+      <div class="stats">
+        <div class="stat-card modified">
+          <div class="label">Modificados</div>
+          <div class="value">${graph.meta.stats.modifiedFiles}</div>
+        </div>
+        <div class="stat-card affected">
+          <div class="label">Afectados</div>
+          <div class="value">${graph.meta.stats.affectedFiles}</div>
+        </div>
+        <div class="stat-card deps">
+          <div class="label">Dependencias</div>
+          <div class="value">${graph.meta.stats.dependencies}</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Total</div>
+          <div class="value">${graph.meta.stats.totalFiles}</div>
+        </div>
+      </div>
+      
+      <div class="controls">
+        <button onclick="resetView()">🔄 Resetear Vista</button>
+        <button onclick="fitToScreen()">📐 Ajustar a Pantalla</button>
+        <button onclick="toggleLayout()">🔀 Cambiar Layout</button>
+      </div>
+      
+      <div id="node-info">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+          <p>Haz clic en un nodo para ver detalles</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const graphData = ${JSON.stringify(graph, null, 2)};
+    
+    const elements = [
+      ...graphData.nodes.map(node => ({
+        data: {
+          id: node.id,
+          label: node.label,
+          modified: node.modified,
+          status: node.status,
+          url: node.url
+        }
+      })),
+      ...graphData.edges.map(edge => ({
+        data: {
+          source: edge.from,
+          target: edge.to,
+          type: edge.type || 'imports'
+        }
+      }))
+    ];
+    
+    let currentLayout = 'cose';
+    
+    const cy = cytoscape({
+      container: document.getElementById('cy'),
+      elements: elements,
+      style: [
+        {
+          selector: 'node',
+          style: {
+            'background-color': '#21262d',
+            'border-width': 2,
+            'border-color': '#30363d',
+            'label': 'data(label)',
+            'color': '#c9d1d9',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            'font-size': '10px',
+            'width': 40,
+            'height': 40
+          }
+        },
+        {
+          selector: 'node[modified = true]',
+          style: {
+            'background-color': '#f85149',
+            'border-color': '#da3633',
+            'border-width': 3
+          }
+        },
+        {
+          selector: 'node[modified = false]',
+          style: {
+            'background-color': '#d29922',
+            'border-color': '#bb8009'
+          }
+        },
+        {
+          selector: 'edge',
+          style: {
+            'width': 2,
+            'line-color': '#30363d',
+            'target-arrow-color': '#30363d',
+            'target-arrow-shape': 'triangle',
+            'curve-style': 'bezier',
+            'arrow-scale': 1
+          }
+        },
+        {
+          selector: 'node:selected',
+          style: {
+            'border-color': '#58a6ff',
+            'border-width': 4
+          }
+        },
+        {
+          selector: '.highlighted',
+          style: {
+            'background-color': '#58a6ff',
+            'line-color': '#58a6ff',
+            'target-arrow-color': '#58a6ff',
+            'border-color': '#58a6ff'
+          }
+        }
+      ],
+      layout: {
+        name: 'cose',
+        animate: true,
+        animationDuration: 500,
+        nodeRepulsion: 8000,
+        idealEdgeLength: 100,
+        edgeElasticity: 100
+      }
+    });
+    
+    cy.on('tap', 'node', function(evt) {
+      const node = evt.target;
+      const data = node.data();
+      
+      cy.elements().removeClass('highlighted');
+      
+      node.addClass('highlighted');
+      node.connectedEdges().addClass('highlighted');
+      node.neighborhood('node').addClass('highlighted');
+      
+      const statusBadge = data.modified 
+        ? '<span class="badge modified">Modificado</span>'
+        : '<span class="badge affected">Afectado</span>';
+      
+      const changeTypeBadge = data.status 
+        ? \`<span class="badge \${data.status}">\${data.status.toUpperCase()}</span>\`
+        : '';
+      
+      const azureLink = data.url 
+        ? \`<a href="\${data.url}" target="_blank" class="link-btn">🔗 Ver en Azure DevOps</a>\`
+        : '';
+      
+      const incoming = node.incomers('node').length;
+      const outgoing = node.outgoers('node').length;
+      
+      document.getElementById('node-info').innerHTML = \`
+        <div class="node-details">
+          <h3>\${data.label}</h3>
+          <div class="detail-row">
+            <span class="detail-label">Ruta:</span>
+            <span class="detail-value" style="font-size: 11px; word-break: break-all;">\${data.id}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Estado:</span>
+            <span>\${statusBadge} \${changeTypeBadge}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Dependencias entrantes:</span>
+            <span class="detail-value">\${incoming}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Dependencias salientes:</span>
+            <span class="detail-value">\${outgoing}</span>
+          </div>
+          \${azureLink}
+        </div>
+      \`;
+    });
+    
+    cy.on('tap', function(evt) {
+      if (evt.target === cy) {
+        cy.elements().removeClass('highlighted');
+      }
+    });
+    
+    function resetView() {
+      cy.fit();
+      cy.center();
+      cy.elements().removeClass('highlighted');
+    }
+    
+    function fitToScreen() {
+      cy.fit();
+    }
+    
+    function toggleLayout() {
+      const layouts = ['cose', 'circle', 'grid', 'breadthfirst', 'concentric'];
+      const currentIndex = layouts.indexOf(currentLayout);
+      currentLayout = layouts[(currentIndex + 1) % layouts.length];
+      
+      cy.layout({
+        name: currentLayout,
+        animate: true,
+        animationDuration: 500
+      }).run();
+    }
+  </script>
+</body>
+</html>`;
+
+  fs.writeFileSync(htmlFile, htmlContent);
+}
+
+/**
+ * Exporta el grafo a formato Mermaid
+ * @param {Object} graph - Grafo de impacto
+ * @returns {string} Diagrama en formato Mermaid
+ */
+function exportToMermaid(graph) {
+  let mermaid = 'graph TD\n';
+  
+  graph.nodes.forEach(node => {
+    const style = node.modified ? ':::modified' : ':::affected';
+    const id = node.id.replace(/[^a-zA-Z0-9]/g, '_');
+    const label = node.label.replace(/"/g, "'");
+    mermaid += `  ${id}["${label}"]${style}\n`;
+  });
+  
+  mermaid += '\n';
+  
+  graph.edges.forEach(edge => {
+    const fromId = edge.from.replace(/[^a-zA-Z0-9]/g, '_');
+    const toId = edge.to.replace(/[^a-zA-Z0-9]/g, '_');
+    mermaid += `  ${fromId} --> ${toId}\n`;
+  });
+  
+  mermaid += '\n';
+  mermaid += 'classDef modified fill:#f85149,stroke:#da3633,color:#fff\n';
+  mermaid += 'classDef affected fill:#d29922,stroke:#bb8009,color:#fff\n';
+  
+  return mermaid;
 }
 
 /**
@@ -148,6 +604,35 @@ async function analyzePullRequest(options) {
 
     console.log(chalk.green(`\n✓ Grafo de impacto generado en: ${outputFile}`));
     console.log(chalk.gray(`Archivos modificados: ${impactGraph.meta.stats.modifiedFiles} | Archivos afectados: ${impactGraph.meta.stats.affectedFiles} | Dependencias: ${impactGraph.meta.stats.dependencies}`));
+
+    // Generar visualización HTML si se solicita
+    if (options.html) {
+      const htmlFile = outputFile.replace('.json', '.html');
+      generateVisualization(impactGraph, htmlFile);
+      console.log(chalk.green(`\n✓ Visualización HTML generada en: ${htmlFile}`));
+      console.log(chalk.gray('Abre el archivo en tu navegador para explorar el grafo interactivo'));
+      
+      // Abrir automáticamente en el navegador si se solicita
+      if (options.open) {
+        const openCommand = process.platform === 'darwin' ? 'open' : 
+                           process.platform === 'win32' ? 'start' : 'xdg-open';
+        try {
+          execSync(`${openCommand} ${htmlFile}`, { stdio: 'ignore' });
+          console.log(chalk.green('✓ Visualización abierta en el navegador'));
+        } catch (error) {
+          console.log(chalk.yellow(`No se pudo abrir automáticamente. Abre manualmente: ${htmlFile}`));
+        }
+      }
+    }
+
+    // Generar diagrama Mermaid si se solicita
+    if (options.mermaid) {
+      const mermaidFile = outputFile.replace('.json', '.mmd');
+      const mermaidContent = exportToMermaid(impactGraph);
+      fs.writeFileSync(mermaidFile, mermaidContent);
+      console.log(chalk.green(`\n✓ Diagrama Mermaid generado en: ${mermaidFile}`));
+      console.log(chalk.gray('Puedes usar este archivo en GitHub, GitLab o cualquier visor de Mermaid'));
+    }
 
     // Mostrar resumen de archivos modificados
     const modifiedNodes = impactGraph.nodes.filter(n => n.modified);
