@@ -124,16 +124,16 @@ ${filesList}
 
 Proporciona un análisis estructurado:
 
-## 📊 Alcance del Cambio
+## [ANALYTICS] Alcance del Cambio
 [Describe el alcance: ¿es un cambio localizado o amplio?]
 
-## 🎯 Áreas de Impacto
+## [TARGET] Áreas de Impacto
 [Lista las áreas principales afectadas]
 
-## ⚠️ Riesgos Potenciales
+## [WARNING] Riesgos Potenciales
 [Identifica posibles riesgos o efectos secundarios]
 
-## ✅ Recomendaciones
+## [SUCCESS] Recomendaciones
 [Sugiere qué revisar o probar con especial atención]
 
 Sé conciso pero informativo.`
@@ -193,13 +193,13 @@ ${diff}
 
 Proporciona:
 
-## 🔄 Alternativas Mejores
+## [ALTERNATIVE] Alternativas Mejores
 [¿Hay una forma más simple o eficiente de lograr lo mismo?]
 
-## 🎨 Patrones Recomendados
+## [PATTERN] Patrones Recomendados
 [¿Qué patrones de diseño o mejores prácticas aplicarían?]
 
-## 🚀 Optimizaciones
+## [OPTIMIZE] Optimizaciones
 [¿Cómo mejorar el rendimiento o mantenibilidad?]
 
 Sé específico y práctico.`

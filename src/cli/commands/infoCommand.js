@@ -18,7 +18,7 @@ async function printBranchInfo() {
             const [, alias, type, descriptor] = match;
             const isValidType = DEFAULT_BRANCH_TYPES.some((t) => t.prefix === type);
 
-            console.log(`${chalk.gray('Estado:')} ${chalk.green('✅ Cumple la convención de GitBrancher')}`);
+            console.log(`${chalk.gray('Estado:')} ${chalk.green('[SUCCESS] Cumple la convención de GitBrancher')}`);
             console.log(`${chalk.gray('  ├─ Alias:')} ${chalk.cyan(alias)}`);
 
             if (isValidType) {
@@ -37,7 +37,7 @@ async function printBranchInfo() {
             }
 
         } else {
-            console.log(`${chalk.gray('Estado:')} ${chalk.yellow('⚠️  No sigue la estructura <alias>/<tipo>/<descriptor>')}`);
+            console.log(`${chalk.gray('Estado:')} ${chalk.yellow('[WARNING] No sigue la estructura <alias>/<tipo>/<descriptor>')}`);
             console.log(chalk.gray('Sugerencia: Usa `gitbrancher new` para crear ramas estandarizadas.'));
         }
 

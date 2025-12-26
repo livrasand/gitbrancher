@@ -108,7 +108,7 @@ async function migrateFromConfigstore() {
         // Si se migró algo, eliminar la configuración antigua de Configstore
         if (migrated) {
             configStore.delete(AZURE_CONFIG_KEY);
-            console.log('✓ Credenciales migradas al almacenamiento seguro del sistema.');
+            console.log('[OK] Credenciales migradas al almacenamiento seguro del sistema.');
         }
 
         return migrated;

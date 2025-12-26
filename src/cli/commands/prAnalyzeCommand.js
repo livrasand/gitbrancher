@@ -828,9 +828,9 @@ function generateVisualization(graph, htmlFile) {
             'Análisis AI' +
           '</div>' +
           '<div class="ai-content">' +
-            '<div class="ai-section"><strong>📝 Resumen:</strong><div class="ai-text">' + aiChanges + '</div></div>' +
-            '<div class="ai-section"><strong>✅ Calidad:</strong><div class="ai-text">' + aiQuality + '</div></div>' +
-            '<div class="ai-section"><strong>💡 Mejoras:</strong><div class="ai-text">' + aiImprovements + '</div></div>' +
+            '<div class="ai-section"><strong>[NOTE] Resumen:</strong><div class="ai-text">' + aiChanges + '</div></div>' +
+            '<div class="ai-section"><strong>[SUCCESS] Calidad:</strong><div class="ai-text">' + aiQuality + '</div></div>' +
+            '<div class="ai-section"><strong>[TIP] Mejoras:</strong><div class="ai-text">' + aiImprovements + '</div></div>' +
           '</div>' +
         '</div>';
       }
@@ -969,17 +969,17 @@ async function analyzePullRequest(options) {
 
       const amount = options.aiFull ? 3 : 1;
       if (credits.credits_used + amount > credits.credits_limit) {
-        console.error(chalk.red(`\n❌ Créditos insuficientes (${credits.credits_used}/${credits.credits_limit}).`));
+        console.error(chalk.red(`\n[ERROR] Créditos insuficientes (${credits.credits_used}/${credits.credits_limit}).`));
         if (credits.plan === 'free') {
           console.log(chalk.yellow('Actualiza a Pro para 500 créditos AI / mes.'));
         }
         process.exit(1);
       }
 
-      console.log(chalk.blue(`🧠 Créditos antes: ${credits.credits_used}/${credits.credits_limit}`));
+      console.log(chalk.blue(`[AI] Créditos antes: ${credits.credits_used}/${credits.credits_limit}`));
 
       try {
-        console.log(chalk.cyan('\n🤖 Analizando con AI...'));
+        console.log(chalk.cyan('\n[BOT] Analizando con AI...'));
         const analyzer = new aiAnalyzer();
         
         // Análisis general del PR
@@ -998,7 +998,7 @@ async function analyzePullRequest(options) {
         
         // Análisis por archivo (solo archivos modificados con diff)
         if (options.aiFull) {
-          console.log(chalk.cyan('📝 Analizando archivos modificados...'));
+          console.log(chalk.cyan('[NOTE] Analizando archivos modificados...'));
           for (const node of impactGraph.nodes.filter(n => n.modified && n.diff)) {
             try {
               const [changes, quality, improvements] = await Promise.all([
@@ -1013,32 +1013,32 @@ async function analyzePullRequest(options) {
                 improvements
               };
               
-              console.log(chalk.gray(`  ✓ ${node.label}`));
+              console.log(chalk.gray(`  [OK] ${node.label}`));
             } catch (error) {
-              console.log(chalk.yellow(`  ⚠ ${node.label}: ${error.message}`));
+              console.log(chalk.yellow(`  [WARNING] ${node.label}: ${error.message}`));
             }
           }
         }
         
         // Guardar el grafo actualizado con análisis AI
         fs.writeFileSync(outputFile, JSON.stringify(impactGraph, null, 2));
-        console.log(chalk.green('✓ Análisis AI completado'));
+        console.log(chalk.green('[OK] Análisis AI completado'));
         
         // Consumir créditos
         const consumeResult = await consumeCredits(amount);
         if (consumeResult.success) {
-          console.log(chalk.blue(`🧠 Créditos después: ${consumeResult.credits_used}/${consumeResult.credits_limit}`));
+          console.log(chalk.blue(`[AI] Créditos después: ${consumeResult.credits_used}/${consumeResult.credits_limit}`));
         } else {
-          console.log(chalk.yellow('⚠️ No se pudieron consumir créditos, pero análisis completado.'));
+          console.log(chalk.yellow('[WARNING] No se pudieron consumir créditos, pero análisis completado.'));
         }
         
         // Mostrar resumen del análisis
         if (!options.html) {
-          console.log(chalk.cyan('\n📊 Análisis de Impacto del PR:\n'));
+          console.log(chalk.cyan('\n[ANALYTICS] Análisis de Impacto del PR:\n'));
           console.log(prAnalysis);
         }
       } catch (error) {
-        console.log(chalk.yellow(`\n⚠️  No se pudo completar el análisis AI: ${error.message}`));
+        console.log(chalk.yellow(`\n[WARNING]  No se pudo completar el análisis AI: ${error.message}`));
         console.log(chalk.gray('Verifica tu conexión a internet o intenta más tarde'));
       }
     }
@@ -1079,11 +1079,11 @@ async function analyzePullRequest(options) {
     // Mostrar resumen de archivos modificados
     const modifiedNodes = impactGraph.nodes.filter(n => n.modified);
     if (modifiedNodes.length > 0) {
-      console.log(chalk.cyan('\n📝 Archivos modificados en el PR:'));
+      console.log(chalk.cyan('\n[NOTE] Archivos modificados en el PR:'));
       modifiedNodes.forEach((node) => {
-        const changeTypeIcon = node.status === 'add' ? chalk.green('➕') :
-                              node.status === 'edit' ? chalk.blue('✏️') :
-                              node.status === 'delete' ? chalk.red('🗑️') : chalk.gray('❓');
+        const changeTypeIcon = node.status === 'add' ? chalk.green('[+]') :
+                              node.status === 'edit' ? chalk.blue('[EDIT]') :
+                              node.status === 'delete' ? chalk.red('[DELETE]') : chalk.gray('[UNKNOWN]');
         console.log(`  ${changeTypeIcon} ${node.id}`);
       });
     }
@@ -1091,9 +1091,9 @@ async function analyzePullRequest(options) {
     // Mostrar archivos afectados
     const affectedNodes = impactGraph.nodes.filter(n => !n.modified);
     if (affectedNodes.length > 0) {
-      console.log(chalk.yellow(`\n⚠️  Archivos afectados (importan los modificados):`));
+      console.log(chalk.yellow(`\n[WARNING]  Archivos afectados (importan los modificados):`));
       affectedNodes.slice(0, 10).forEach((node) => {
-        console.log(`  ${chalk.yellow('⚡')} ${node.id}`);
+        console.log(`  ${chalk.yellow('[AFFECTED]')} ${node.id}`);
       });
       if (affectedNodes.length > 10) {
         console.log(chalk.gray(`  ... y ${affectedNodes.length - 10} archivos más`));

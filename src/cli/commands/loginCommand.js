@@ -14,7 +14,7 @@ async function loginCommand() {
     // Token provided as argument
     const token = args[tokenIndex + 1];
     setToken(token);
-    console.log(chalk.green('✅ Token guardado exitosamente!'));
+    console.log(chalk.green('[SUCCESS] Token guardado exitosamente!'));
     console.log(chalk.white('Ahora puedes usar comandos que requieren autenticación.'));
     return;
   }
@@ -54,7 +54,7 @@ async function loginCommand() {
             <body class="antialiased">
               <div class="min-h-screen flex items-center justify-center px-8">
                 <div class="bg-white p-8 rounded-lg shadow-lg max-w-md mx-auto text-center">
-                  <div class="text-6xl mb-4">✅</div>
+                  <div class="text-6xl mb-4">[SUCCESS]</div>
                   <h1 class="text-2xl font-bold text-gray-900 mb-4">¡Autenticación exitosa!</h1>
                   <p class="text-gray-600 mb-4">Ya puedes cerrar esta ventana y volver a tu terminal.</p>
                   <p class="text-gray-500 text-sm">GitBrancher CLI está listo para usar</p>
@@ -89,7 +89,7 @@ async function loginCommand() {
             <body class="antialiased">
               <div class="min-h-screen flex items-center justify-center px-8">
                 <div class="bg-white p-8 rounded-lg shadow-lg max-w-md mx-auto text-center">
-                  <div class="text-6xl mb-4">❌</div>
+                  <div class="text-6xl mb-4">[ERROR]</div>
                   <h1 class="text-2xl font-bold text-gray-900 mb-4">Error de autenticación</h1>
                   <p class="text-gray-600">No se recibió el token. Por favor, intenta nuevamente.</p>
                 </div>
@@ -147,7 +147,7 @@ async function loginCommand() {
     // Esperar a recibir el token
     const token = await serverPromise;
     
-    console.log(chalk.green('\n✅ Autenticación exitosa!'));
+    console.log(chalk.green('\n[SUCCESS] Autenticación exitosa!'));
     console.log(chalk.white('Token guardado. Ahora puedes usar comandos que requieren autenticación.'));
     process.exit(0);
 

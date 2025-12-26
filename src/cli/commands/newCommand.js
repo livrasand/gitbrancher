@@ -52,12 +52,12 @@ async function createNewBranchNonInteractive({ type, desc, push }) {
   const branchName = formatBranchName({ userAlias, branchType: type, descriptor: desc });
 
   await createBranch(branchName);
-  console.log(chalk.green(`\n✅ Rama creada: ${branchName}`));
+  console.log(chalk.green(`\n[SUCCESS] Rama creada: ${branchName}`));
 
   if (push) {
     console.log(chalk.gray('Pushing al remoto...'));
     await pushBranch(branchName);
-    console.log(chalk.green(`✅ Rama subida a origin/${branchName}`));
+    console.log(chalk.green(`[SUCCESS] Rama subida a origin/${branchName}`));
   }
 }
 
@@ -164,7 +164,7 @@ ${selectedWorkItem ? `Work item Azure: ${chalk.white(`#${selectedWorkItem.id} ${
 
     await createBranch(branchName);
 
-    console.log(chalk.green(`\n✅ Rama creada: ${branchName}`));
+    console.log(chalk.green(`\n[SUCCESS] Rama creada: ${branchName}`));
     console.log(chalk.gray('Puedes comenzar a trabajar en tu nueva rama inmediatamente.\n'));
 
     // Flujo de Push opcional o solicitado
@@ -184,11 +184,11 @@ ${selectedWorkItem ? `Work item Azure: ${chalk.white(`#${selectedWorkItem.id} ${
     if (shouldPush) {
       console.log(chalk.gray('Subiendo rama a remote...'));
       await pushBranch(branchName);
-      console.log(chalk.green(`✅ Rama subida a origin/${branchName}`));
+      console.log(chalk.green(`[SUCCESS] Rama subida a origin/${branchName}`));
     }
 
   } catch (error) {
-    console.error(chalk.red('\n❌ Ocurrió un error al crear la rama:'));
+    console.error(chalk.red('\n[ERROR] Ocurrió un error al crear la rama:'));
     console.error(chalk.red(error.message));
     console.error(chalk.gray('\nSugerencia: puedes ejecutar el comando con --silent para omitir el banner si deseas agilizar la ejecución.'));
   }

@@ -15,10 +15,10 @@ async function creditsCommand() {
   const remaining = credits.credits_limit - credits.credits_used;
   const planName = credits.plan === 'free' ? 'Free' : 'Pro';
 
-  console.log(`🧠 AI credits: ${remaining} / ${credits.credits_limit} (Plan ${planName})`);
+  console.log(`[AI] AI credits: ${remaining} / ${credits.credits_limit} (Plan ${planName})`);
 
   if (remaining === 0) {
-    console.log(chalk.red('\n❌ Límite de créditos alcanzado.'));
+    console.log(chalk.red('\n[ERROR] Límite de créditos alcanzado.'));
     if (credits.plan === 'free') {
       console.log(chalk.yellow('Actualiza a Pro para 500 créditos AI / mes.'));
     }
