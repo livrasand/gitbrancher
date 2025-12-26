@@ -5,6 +5,7 @@ const chalk = require('chalk');
 const { fetchPullRequestDetails } = require('../../integrations/azureDevOpsService');
 const { getEffectiveAzureConfig } = require('../../config/azureConfig');
 const { analyzeDependencies } = require('../../utils/dependencyAnalyzer');
+const aiAnalyzer = require('../../utils/aiAnalyzer');
 const pkg = require('../../../package.json');
 const os = require('os');
 
@@ -279,1062 +280,584 @@ function generateVisualization(graph, htmlFile) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PR Impact Graph - ${graph.meta.prId}</title>
-  
+  <title>PR #${graph.meta.prId} – Impacto</title>
+
   <!-- Fluent UI Web Components -->
   <script type="module">
-    import { 
+    import {
       provideFluentDesignSystem,
       fluentButton,
       fluentCard,
       fluentBadge,
       fluentTabs,
       fluentTab,
-      fluentTabPanel,
-      fluentDivider
-    } from "https://unpkg.com/@fluentui/web-components@3.0.0";
-    
-    provideFluentDesignSystem()
-      .register(
-        fluentButton(),
-        fluentCard(),
-        fluentBadge(),
-        fluentTabs(),
-        fluentTab(),
-        fluentTabPanel(),
-        fluentDivider()
-      );
+      fluentTabPanel
+    } from "https://unpkg.com/@fluentui/web-components@2.5.16";
+    provideFluentDesignSystem().register(
+      fluentButton(),
+      fluentCard(),
+      fluentBadge(),
+      fluentTabs(),
+      fluentTab(),
+      fluentTabPanel()
+    );
   </script>
-  
+
   <!-- Cytoscape -->
   <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
-  
+
   <!-- Highlight.js -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/github.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/diff.min.js"></script>
-  
+
   <style>
     :root {
-      /* Fluent 2 Design Tokens - Dark Theme */
-      --colorNeutralBackground1: #1e1e1e;
-      --colorNeutralBackground2: #2b2b2b;
-      --colorNeutralBackground3: #323232;
-      --colorNeutralForeground1: #ffffff;
-      --colorNeutralForeground2: #d1d1d1;
-      --colorNeutralForeground3: #a6a6a6;
-      --colorBrandBackground: #0078d4;
-      --colorBrandForeground1: #4f9dd8;
-      --colorStatusSuccessBackground1: #107c10;
-      --colorStatusWarningBackground1: #f7630c;
-      --colorStatusDangerBackground1: #d13438;
-      --colorNeutralStroke1: #424242;
-      --colorNeutralStroke2: #525252;
-      --borderRadiusMedium: 8px;
-      --borderRadiusLarge: 12px;
-      --shadow4: 0 2px 4px rgba(0,0,0,0.24);
-      --shadow16: 0 8px 16px rgba(0,0,0,0.28);
+      --bg: #ffffff;
+      --surface: #f6f8fa;
+      --text-primary: #24292f;
+      --text-secondary: #57606a;
+      --text-muted: #8c949e;
+      --brand: #0969da;
+      --modified: #cf222e;
+      --affected: #9a6700;
+      --border: #d0d7de;
+      --shadow: rgba(31, 35, 40, 0.08);
     }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
-      background: var(--colorNeutralBackground1);
-      color: var(--colorNeutralForeground1);
-      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
       height: 100vh;
-    }
-    
-    .app-container {
       display: flex;
-      height: 100vh;
+      overflow: hidden;
     }
-    
-    /* Graph Panel */
+
     .graph-panel {
       flex: 1;
       position: relative;
-      background: var(--colorNeutralBackground1);
+      background: var(--bg);
     }
-    
-    #cy {
-      width: 100%;
-      height: 100%;
-    }
-    
-    .graph-legend {
+
+    #cy { width: 100%; height: 100%; }
+
+    .legend {
       position: absolute;
       top: 20px;
       left: 20px;
-      background: var(--colorNeutralBackground2);
-      border: 1px solid var(--colorNeutralStroke1);
-      border-radius: var(--borderRadiusLarge);
-      padding: 16px;
-      box-shadow: var(--shadow16);
-      backdrop-filter: blur(20px);
-      max-width: 280px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      box-shadow: 0 4px 12px var(--shadow);
     }
-    
-    .legend-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--colorNeutralForeground1);
-      margin-bottom: 12px;
-    }
-    
+
     .legend-item {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 8px;
-      font-size: 12px;
-      color: var(--colorNeutralForeground2);
+      margin-bottom: 6px;
     }
-    
+
     .legend-dot {
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
-      flex-shrink: 0;
     }
-    
-    /* Sidebar */
+
     .sidebar {
-      width: 480px;
-      background: var(--colorNeutralBackground2);
-      border-left: 1px solid var(--colorNeutralStroke1);
+      width: 420px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
-    
-    /* PR Header */
-    .pr-header {
-      padding: 24px;
-      background: var(--colorNeutralBackground3);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
+
+    .header {
+      padding: 28px 24px 20px;
+      border-bottom: 1px solid var(--border);
     }
-    
+
     .pr-id {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--colorBrandForeground1);
+      font-size: 13px;
+      color: var(--brand);
       margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .pr-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--colorNeutralForeground1);
-      margin-bottom: 16px;
-      line-height: 1.4;
-    }
-    
-    .pr-branches {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    
-    .branch-badge {
-      padding: 6px 12px;
-      border-radius: var(--borderRadiusMedium);
-      font-size: 12px;
-      font-family: 'Consolas', 'Monaco', monospace;
       font-weight: 500;
     }
-    
-    .branch-source {
-      background: rgba(211, 52, 56, 0.15);
-      color: #ff6b6b;
-      border: 1px solid rgba(211, 52, 56, 0.3);
-    }
-    
-    .branch-target {
-      background: rgba(16, 124, 16, 0.15);
-      color: #73d173;
-      border: 1px solid rgba(16, 124, 16, 0.3);
-    }
-    
-    .branch-arrow {
-      color: var(--colorNeutralForeground3);
-      font-size: 16px;
-    }
-    
-    /* Stats Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      padding: 20px;
-      background: var(--colorNeutralBackground1);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
-    }
-    
-    fluent-card {
-      --card-height: auto;
-      padding: 16px;
-      background: var(--colorNeutralBackground2);
-      border: 1px solid var(--colorNeutralStroke1);
-    }
-    
-    .stat-card {
-      text-align: center;
-    }
-    
-    .stat-icon {
-      font-size: 24px;
-      margin-bottom: 8px;
-    }
-    
-    .stat-value {
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--colorNeutralForeground1);
-      margin-bottom: 4px;
-    }
-    
-    .stat-label {
-      font-size: 11px;
-      color: var(--colorNeutralForeground3);
-      text-transform: uppercase;
+
+    .pr-title {
+      font-size: 20px;
       font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 16px;
+    }
+
+    .branches {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .branch {
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(9, 105, 218, 0.1);
+      color: var(--brand);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 20px 24px;
+    }
+
+    .stat {
+      text-align: center;
+      padding: 16px;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 600;
+      margin: 4px 0;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    
-    /* Controls */
-    .controls-section {
-      padding: 16px 20px;
-      background: var(--colorNeutralBackground2);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
+
+    .controls {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
     }
-    
-    .controls-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--colorNeutralForeground1);
-      margin-bottom: 12px;
-    }
-    
+
     fluent-tabs {
       margin-bottom: 16px;
     }
-    
-    .control-buttons {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
+
+    .buttons {
+      display: flex;
       gap: 8px;
     }
-    
+
     fluent-button {
-      width: 100%;
-    }
-    
-    /* Details Panel */
-    .details-panel {
       flex: 1;
-      padding: 20px;
+      font-size: 13px;
+    }
+
+    .details {
+      flex: 1;
+      padding: 24px;
       overflow-y: auto;
     }
-    
-    .empty-state {
+
+    .empty {
       text-align: center;
-      padding: 60px 20px;
-      color: var(--colorNeutralForeground3);
+      padding: 80px 20px;
+      color: var(--text-muted);
     }
-    
-    .empty-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      opacity: 0.5;
-    }
-    
+
     .empty-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--colorNeutralForeground2);
-      margin-bottom: 8px;
+      font-size: 18px;
+      margin: 16px 0 8px;
+      color: var(--text-secondary);
     }
-    
-    .empty-description {
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    
-    /* File Details */
+
     .file-card {
-      background: var(--colorNeutralBackground3);
-      border: 1px solid var(--colorNeutralStroke1);
-      border-radius: var(--borderRadiusLarge);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       overflow: hidden;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px var(--shadow);
     }
-    
+
     .file-header {
-      padding: 16px 20px;
-      background: var(--colorNeutralBackground2);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
     }
-    
+
     .file-title {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 600;
-      color: var(--colorBrandForeground1);
-      margin-bottom: 8px;
       display: flex;
       align-items: center;
       gap: 8px;
+      margin-bottom: 8px;
     }
-    
+
     .file-path {
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 11px;
-      color: var(--colorNeutralForeground3);
-      background: var(--colorNeutralBackground1);
-      padding: 6px 10px;
-      border-radius: var(--borderRadiusMedium);
-      word-break: break-all;
+      font-family: 'SF Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
     }
-    
-    .file-meta {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-top: 12px;
+
+    .meta {
+      display: flex;
+      gap: 24px;
+      margin-top: 16px;
+      font-size: 14px;
     }
-    
+
     .meta-item {
       display: flex;
       flex-direction: column;
-      gap: 4px;
     }
-    
+
     .meta-label {
       font-size: 11px;
-      color: var(--colorNeutralForeground3);
+      color: var(--text-muted);
       text-transform: uppercase;
-      font-weight: 600;
       letter-spacing: 0.5px;
     }
-    
+
     .meta-value {
       font-size: 20px;
-      font-weight: 700;
-      color: var(--colorNeutralForeground1);
+      font-weight: 600;
+      margin-top: 4px;
     }
-    
-    /* Impact Section */
-    .impact-section {
-      margin-top: 16px;
-    }
-    
+
     .impact-header {
       padding: 12px 20px;
-      background: var(--colorNeutralBackground2);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
-      color: var(--colorNeutralForeground1);
+      background: rgba(9, 105, 218, 0.05);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    
+
     .impact-list {
       padding: 12px 20px;
     }
-    
+
     .impact-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
       padding: 10px 12px;
-      margin-bottom: 8px;
-      background: var(--colorNeutralBackground1);
-      border: 1px solid var(--colorNeutralStroke1);
-      border-radius: var(--borderRadiusMedium);
-      transition: all 0.2s;
-    }
-    
-    .impact-item:hover {
-      border-color: var(--colorBrandBackground);
-      background: var(--colorNeutralBackground2);
-    }
-    
-    .impact-file {
-      font-size: 12px;
-      color: var(--colorNeutralForeground1);
-      font-weight: 500;
-    }
-    
-    .impact-line {
-      font-size: 11px;
-      color: var(--colorNeutralForeground3);
-      font-family: 'Consolas', 'Monaco', monospace;
-      background: var(--colorNeutralBackground2);
-      padding: 4px 8px;
-      border-radius: 4px;
-    }
-    
-    /* Diff Section */
-    .diff-section {
-      margin-top: 16px;
-    }
-    
-    .diff-header {
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.015);
+      margin-bottom: 6px;
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      padding: 12px 20px;
-      background: var(--colorNeutralBackground2);
-      border-bottom: 1px solid var(--colorNeutralStroke1);
-    }
-    
-    .diff-title {
       font-size: 13px;
-      font-weight: 600;
-      color: var(--colorNeutralForeground1);
     }
-    
-    .diff-actions {
+
+    .diff-header {
+      padding: 12px 20px;
+      background: rgba(9, 105, 218, 0.05);
+      border-bottom: 1px solid var(--border);
       display: flex;
-      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
     }
-    
+
     .diff-content {
-      max-height: 500px;
-      overflow-y: auto;
-      background: var(--colorNeutralBackground1);
+      background: #f6f8fa;
+      max-height: 600px;
+      overflow: auto;
     }
-    
+
     .diff-content pre {
       margin: 0;
       padding: 20px;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 12px;
+      font-size: 12.5px;
       line-height: 1.6;
     }
-    
-    .no-diff-message {
-      padding: 40px 20px;
-      text-align: center;
-      color: var(--colorNeutralForeground3);
-    }
-    
-    .no-diff-icon {
-      font-size: 32px;
-      margin-bottom: 12px;
-      opacity: 0.5;
-    }
-    
-    /* Fluent Badge Overrides */
-    fluent-badge {
-      --badge-fill-brand: var(--colorBrandBackground);
-      --badge-color-brand: white;
-    }
-    
-    /* Fluent Icons */
-    .fluent-icon {
-      display: inline-block;
-      width: 1em;
-      height: 1em;
-      vertical-align: middle;
-      fill: currentColor;
-    }
-    
-    .fluent-icon-sm {
-      width: 16px;
-      height: 16px;
-    }
-    
-    .fluent-icon-md {
-      width: 20px;
-      height: 20px;
-    }
-    
-    .fluent-icon-lg {
-      width: 24px;
-      height: 24px;
-    }
-    
-    /* Scrollbar */
+
     ::-webkit-scrollbar {
-      width: 12px;
+      width: 8px;
     }
-    
+
     ::-webkit-scrollbar-track {
-      background: var(--colorNeutralBackground1);
+      background: transparent;
     }
-    
+
     ::-webkit-scrollbar-thumb {
-      background: var(--colorNeutralStroke2);
-      border-radius: 6px;
+      background: #d0d7de;
+      border-radius: 4px;
     }
-    
+
     ::-webkit-scrollbar-thumb:hover {
-      background: var(--colorNeutralForeground3);
+      background: #8c949e;
+    }
+
+    /* Estilos para análisis AI */
+    .ai-analysis {
+      background: linear-gradient(135deg, rgba(9, 105, 218, 0.05) 0%, rgba(9, 105, 218, 0.02) 100%);
+      border: 1px solid rgba(9, 105, 218, 0.2);
+    }
+
+    .ai-header {
+      padding: 16px 20px;
+      background: rgba(9, 105, 218, 0.08);
+      border-bottom: 1px solid rgba(9, 105, 218, 0.2);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+      display: flex;
+      align-items: center;
+    }
+
+    .ai-content {
+      padding: 20px;
+    }
+
+    .ai-section {
+      margin-bottom: 20px;
+    }
+
+    .ai-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .ai-section strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .ai-text {
+      padding: 12px 16px;
+      background: var(--bg);
+      border-left: 3px solid var(--brand);
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-secondary);
     }
   </style>
 </head>
 <body>
-  <!-- Fluent UI System Icons SVG Sprites -->
-  <svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <!-- Chart/Data Icon -->
-      <symbol id="icon-chart" viewBox="0 0 20 20">
-        <path d="M3 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3Zm2-1a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H5Zm2 11.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-2Zm4-3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-5Zm-4-3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm4-2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-8Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Document Edit Icon -->
-      <symbol id="icon-document-edit" viewBox="0 0 20 20">
-        <path d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V11h-1V8h-3.5A1.5 1.5 0 0 1 10 6.5V3H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h4v1H6a2 2 0 0 1-2-2V4Zm7 .207L13.793 7H11V4.207ZM11.854 11.854l4.792 4.792a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-4.792-4.792a2.5 2.5 0 0 1 2.208-2.208Zm1.354.854a1.5 1.5 0 1 0-2.122 2.121l4.646 4.647.708-.708-4.647-4.646.415-.414Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Flash/Lightning Icon -->
-      <symbol id="icon-flash" viewBox="0 0 20 20">
-        <path d="M6.294 3.697A1.5 1.5 0 0 1 7.5 3h5.585a1.5 1.5 0 0 1 1.342 2.17L12.9 9h3.6a1.5 1.5 0 0 1 1.212 2.394l-7 9.5a1.5 1.5 0 0 1-2.618-1.288L9.1 16H5.5a1.5 1.5 0 0 1-1.342-2.17l2.136-4.633L4.088 4.564a1.5 1.5 0 0 1 2.206-.867ZM7.5 4l2.206 4.633a.5.5 0 0 1-.062.523L7.5 13.5h4.294l-1.088 3.606L17.5 10h-4.294l1.588-3.5H7.5Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Link Icon -->
-      <symbol id="icon-link" viewBox="0 0 20 20">
-        <path d="M9.25 7c.414 0 .75.336.75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 9.25 7Zm4.5 1.5a.75.75 0 0 0-1.5 0v3a.75.75 0 0 0 1.5 0v-3ZM7.5 3A4.5 4.5 0 0 0 3 7.5v5A4.5 4.5 0 0 0 7.5 17h5a4.5 4.5 0 0 0 4.5-4.5v-5A4.5 4.5 0 0 0 12.5 3h-5ZM4 7.5A3.5 3.5 0 0 1 7.5 4h5A3.5 3.5 0 0 1 16 7.5v5a3.5 3.5 0 0 1-3.5 3.5h-5A3.5 3.5 0 0 1 4 12.5v-5Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Settings/Controls Icon -->
-      <symbol id="icon-settings" viewBox="0 0 20 20">
-        <path d="M10.5 2.002a.5.5 0 0 0-.5.5v1.511a5.998 5.998 0 0 0-2.121.879L6.368 3.381a.5.5 0 0 0-.707 0l-1.414 1.414a.5.5 0 0 0 0 .707l1.511 1.511a5.998 5.998 0 0 0-.879 2.121H3.368a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 .5.5h1.511a5.998 5.998 0 0 0 .879 2.121l-1.511 1.511a.5.5 0 0 0 0 .707l1.414 1.414a.5.5 0 0 0 .707 0l1.511-1.511a5.998 5.998 0 0 0 2.121.879v1.511a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-1.511a5.998 5.998 0 0 0 2.121-.879l1.511 1.511a.5.5 0 0 0 .707 0l1.414-1.414a.5.5 0 0 0 0-.707l-1.511-1.511a5.998 5.998 0 0 0 .879-2.121h1.511a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 0-.5-.5h-1.511a5.998 5.998 0 0 0-.879-2.121l1.511-1.511a.5.5 0 0 0 0-.707l-1.414-1.414a.5.5 0 0 0-.707 0l-1.511 1.511a5.998 5.998 0 0 0-2.121-.879V2.502a.5.5 0 0 0-.5-.5h-2Zm-.5 6a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Target Icon -->
-      <symbol id="icon-target" viewBox="0 0 20 20">
-        <path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 1a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 1a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 1.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Document Icon -->
-      <symbol id="icon-document" viewBox="0 0 20 20">
-        <path d="M6 2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.414A2 2 0 0 0 15.414 6L12 2.586A2 2 0 0 0 10.586 2H6Zm0 1h4.586a1 1 0 0 1 .707.293L14.707 6.707A1 1 0 0 1 15 7.414V16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Box/Package Icon -->
-      <symbol id="icon-box" viewBox="0 0 20 20">
-        <path d="M9.5 2.002a.5.5 0 0 1 .5 0l7 4a.5.5 0 0 1 .268.442v7.112a.5.5 0 0 1-.268.442l-7 4a.5.5 0 0 1-.5 0l-7-4A.5.5 0 0 1 2 13.556V6.444a.5.5 0 0 1 .268-.442l7-4ZM3 7.118v6.438l6.5 3.714V10.732L3 7.118Zm7.5 10.152 6.5-3.714V7.118l-6.5 3.614v6.538ZM10 9.882l6.5-3.614L10 2.654 3.5 6.268 10 9.882Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Info Icon -->
-      <symbol id="icon-info" viewBox="0 0 20 20">
-        <path d="M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm0 1a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm0 2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm0 3a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-1 0v-5A.5.5 0 0 1 10 8Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Copy/Clipboard Icon -->
-      <symbol id="icon-copy" viewBox="0 0 20 20">
-        <path d="M5.5 2A2.5 2.5 0 0 0 3 4.5v9A2.5 2.5 0 0 0 5.5 16H7v1.5A2.5 2.5 0 0 0 9.5 20h5a2.5 2.5 0 0 0 2.5-2.5v-9A2.5 2.5 0 0 0 14.5 6H13V4.5A2.5 2.5 0 0 0 10.5 2h-5ZM13 7h1.5A1.5 1.5 0 0 1 16 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 17.5V16h2.5a2.5 2.5 0 0 0 2.5-2.5V7ZM5.5 3h5A1.5 1.5 0 0 1 12 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 13.5v-9A1.5 1.5 0 0 1 5.5 3Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Search/Zoom Icon -->
-      <symbol id="icon-search" viewBox="0 0 20 20">
-        <path d="M8.5 3a5.5 5.5 0 0 1 4.227 9.02l4.127 4.126a.5.5 0 0 1-.638.765l-.07-.057-4.126-4.127A5.5 5.5 0 1 1 8.5 3Zm0 1a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Chevron Down Icon -->
-      <symbol id="icon-chevron-down" viewBox="0 0 20 20">
-        <path d="M15.854 7.646a.5.5 0 0 1 0 .708l-5.5 5.5a.5.5 0 0 1-.708 0l-5.5-5.5a.5.5 0 1 1 .708-.708L10 12.793l5.146-5.147a.5.5 0 0 1 .708 0Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Arrow Sync/Refresh Icon -->
-      <symbol id="icon-arrow-sync" viewBox="0 0 20 20">
-        <path d="M5.5 4.5A5.5 5.5 0 0 1 15.242 7H13.5a.5.5 0 0 0 0 1h2.5a.5.5 0 0 0 .5-.5v-2.5a.5.5 0 0 0-1 0v1.535A6.5 6.5 0 1 0 16.5 10a.5.5 0 0 0-1 0 5.5 5.5 0 1 1-10-5.5Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Resize/Fit Icon -->
-      <symbol id="icon-resize" viewBox="0 0 20 20">
-        <path d="M3 3.5A.5.5 0 0 1 3.5 3h4a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3.5Zm13 0v3a.5.5 0 0 0 1 0v-3.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0 0 1h3ZM3.5 17h3a.5.5 0 0 0 0-1h-3v-3a.5.5 0 0 0-1 0v3.5a.5.5 0 0 0 .5.5Zm13 0a.5.5 0 0 0 .5-.5v-3.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3.5Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Arrow Swap/Shuffle Icon -->
-      <symbol id="icon-arrow-swap" viewBox="0 0 20 20">
-        <path d="M13.5 3.5a.5.5 0 0 1 .5-.5h3.5a.5.5 0 0 1 .5.5V7a.5.5 0 0 1-1 0V4.707l-3.146 3.147a.5.5 0 0 1-.708-.708L16.293 4H14a.5.5 0 0 1-.5-.5ZM2.5 13a.5.5 0 0 1 .5.5v2.293l3.146-3.147a.5.5 0 0 1 .708.708L3.707 16H6a.5.5 0 0 1 0 1H2.5a.5.5 0 0 1-.5-.5V13a.5.5 0 0 1 .5-.5Z" fill="currentColor"/>
-      </symbol>
-      
-      <!-- Arrow Right Icon -->
-      <symbol id="icon-arrow-right" viewBox="0 0 20 20">
-        <path d="M12.646 3.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L17.793 10.5H2.5a.5.5 0 0 1 0-1h15.293l-5.147-5.146a.5.5 0 0 1 0-.708Z" fill="currentColor"/>
-      </symbol>
-    </defs>
-  </svg>
-  
-  <div class="app-container">
-    <!-- Graph Panel -->
-    <div class="graph-panel">
-      <div id="cy"></div>
-      
-      <div class="graph-legend">
-        <div class="legend-title">Leyenda</div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background: #d13438;"></div>
-          <span>Archivos Modificados</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background: #f7630c;"></div>
-          <span>Archivos Afectados</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background: #0078d4;"></div>
-          <span>Seleccionado</span>
-        </div>
+  <div class="graph-panel">
+    <div id="cy"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#cf222e"></div> Modificados</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9a6700"></div> Afectados</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#0969da"></div> Seleccionado</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="header">
+      <div class="pr-id">PR #${graph.meta.prId}</div>
+      <div class="pr-title">${graph.meta.prTitle}</div>
+      <div class="branches">
+        <span class="branch">${graph.meta.head}</span>
+        →
+        <span class="branch">${graph.meta.base}</span>
       </div>
     </div>
-    
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <!-- PR Header -->
-      <div class="pr-header">
-        <div class="pr-id">PR #${graph.meta.prId}</div>
-        <div class="pr-title">${graph.meta.prTitle}</div>
-        <div class="pr-branches">
-          <span class="branch-badge branch-source">${graph.meta.head}</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path fill="currentColor" d="M14.314 3.146a.5.5 0 0 0-.707.708L16.253 6.5H12A2.5 2.5 0 0 0 9.5 9v2A1.5 1.5 0 0 1 8 12.5h-.041a3 3 0 1 0 0 1H8a2.5 2.5 0 0 0 2.5-2.5V9A1.5 1.5 0 0 1 12 7.5h4.253l-2.646 2.646a.5.5 0 1 0 .707.707l3.5-3.5a.5.5 0 0 0 0-.707zM7 13a2 2 0 1 1-4 0a2 2 0 0 1 4 0"/></svg>
-          <span class="branch-badge branch-target">${graph.meta.base}</span>
-        </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value">${graph.meta.stats.modifiedFiles}</div>
+        <div class="stat-label">Modificados</div>
       </div>
-      
-      <!-- Stats -->
-      <div class="stats-grid">
-        <fluent-card>
-          <div class="stat-card">
-            <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M6.25 3.5a.75.75 0 0 0-.75.75v15.5c0 .414.336.75.75.75h3.78a2.08 2.08 0 0 0 .27 1.5H6.25A2.25 2.25 0 0 1 4 19.75V4.25A2.25 2.25 0 0 1 6.25 2h6.086c.464 0 .909.184 1.237.513l5.914 5.914c.329.328.513.773.513 1.237V10h-.13a3 3 0 0 0-.332 0H14a2 2 0 0 1-2-2V3.5zm7.25 1.06V8a.5.5 0 0 0 .5.5h3.44zM19.713 11h.002a2.286 2.286 0 0 1 1.615 3.902l-5.902 5.902a2.7 2.7 0 0 1-1.247.707l-1.831.457a1.087 1.087 0 0 1-1.318-1.318l.457-1.83c.118-.473.362-.904.707-1.248l5.902-5.902a2.28 2.28 0 0 1 1.615-.67"/></svg>
-            </div>
-            <div class="stat-value">${graph.meta.stats.modifiedFiles}</div>
-            <div class="stat-label">Modificados</div>
-          </div>
-        </fluent-card>
-        
-        <fluent-card>
-          <div class="stat-card">
-            <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M18.5 20a.5.5 0 0 1-.5.5h-4.229a5 5 0 0 1-.77 1.5H18a2 2 0 0 0 2-2V9.828a2 2 0 0 0-.586-1.414l-5.829-5.828l-.049-.04l-.036-.03a2 2 0 0 0-.219-.18a1 1 0 0 0-.08-.044l-.048-.024l-.05-.029c-.054-.031-.109-.063-.166-.087a2 2 0 0 0-.624-.138q-.03-.002-.059-.007L12.172 2H6a2 2 0 0 0-2 2v10h1.5V4a.5.5 0 0 1 .5-.5h6V8a2 2 0 0 0 2 2h4.5zm-5-15.379L17.378 8.5H14a.5.5 0 0 1-.5-.5zM5.75 15.75A.75.75 0 0 0 5 15l-.2.005A4 4 0 0 0 5 23l.102-.007A.75.75 0 0 0 5 21.5l-.164-.005A2.5 2.5 0 0 1 5 16.5l.102-.007a.75.75 0 0 0 .648-.743M13 19a4 4 0 0 0-4-4l-.102.007A.75.75 0 0 0 9 16.5l.164.005A2.5 2.5 0 0 1 9 21.5l-.102.007A.75.75 0 0 0 9 23l.2-.005A4 4 0 0 0 13 19m-4.25-.75h-3.5l-.102.007a.75.75 0 0 0 .102 1.493h3.5l.102-.007a.75.75 0 0 0-.102-1.493"/></svg>
-            </div>
-            <div class="stat-value">${graph.meta.stats.affectedFiles}</div>
-            <div class="stat-label">Afectados</div>
-          </div>
-        </fluent-card>
-        
-        <fluent-card>
-          <div class="stat-card">
-            <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2a2 2 0 0 0-2 2v7.705l.882-.441q.299-.15.618-.213V4a.5.5 0 0 1 .5-.5h6V8a2 2 0 0 0 2 2h4.5v10a.5.5 0 0 1-.5.5h-6.114a2.5 2.5 0 0 1-1.268 1.489l-.022.011H18a2 2 0 0 0 2-2V9.828a2 2 0 0 0-.586-1.414l-5.828-5.828A2 2 0 0 0 12.172 2zm11.38 6.5H14a.5.5 0 0 1-.5-.5V4.62zM6.67 12.158l3.5 1.75A1.5 1.5 0 0 1 11 15.25v4.503a1.5 1.5 0 0 1-.83 1.342l-3.5 1.75a1.5 1.5 0 0 1-1.34 0l-3.5-1.75A1.5 1.5 0 0 1 1 19.753V15.25a1.5 1.5 0 0 1 .83-1.342l3.5-1.75a1.5 1.5 0 0 1 1.34 0m-3.446 2.895a.5.5 0 1 0-.448.894L5.5 17.31v3.19a.5.5 0 1 0 1 0v-3.19l2.724-1.363a.5.5 0 1 0-.448-.894L6 16.44z"/></svg>
-            </div>
-            <div class="stat-value">${graph.meta.stats.dependencies}</div>
-            <div class="stat-label">Dependencias</div>
-          </div>
-        </fluent-card>
-        
-        <fluent-card>
-          <div class="stat-card">
-            <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9.828a2 2 0 0 0-.586-1.414l-5.828-5.828A2 2 0 0 0 12.172 2zm-.5 2a.5.5 0 0 1 .5-.5h6V8a2 2 0 0 0 2 2h4.5v10a.5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5zm11.88 4.5H14a.5.5 0 0 1-.5-.5V4.62z"/></svg>
-            </div>
-            <div class="stat-value">${graph.meta.stats.totalFiles}</div>
-            <div class="stat-label">Total</div>
-          </div>
-        </fluent-card>
+      <div class="stat">
+        <div class="stat-value">${graph.meta.stats.affectedFiles}</div>
+        <div class="stat-label">Afectados</div>
       </div>
-      
-      <!-- Controls -->
-      <div class="controls-section">
-        <div class="controls-title"><svg class="fluent-icon fluent-icon-md" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12.012 2.25c.734.008 1.465.093 2.182.253a.75.75 0 0 1 .582.649l.17 1.527a1.384 1.384 0 0 0 1.927 1.116l1.4-.615a.75.75 0 0 1 .85.174a9.8 9.8 0 0 1 2.205 3.792a.75.75 0 0 1-.272.825l-1.241.916a1.38 1.38 0 0 0 0 2.226l1.243.915a.75.75 0 0 1 .272.826a9.8 9.8 0 0 1-2.204 3.792a.75.75 0 0 1-.849.175l-1.406-.617a1.38 1.38 0 0 0-1.926 1.114l-.17 1.526a.75.75 0 0 1-.571.647a9.5 9.5 0 0 1-4.406 0a.75.75 0 0 1-.572-.647l-.169-1.524a1.382 1.382 0 0 0-1.925-1.11l-1.406.616a.75.75 0 0 1-.85-.175a9.8 9.8 0 0 1-2.203-3.796a.75.75 0 0 1 .272-.826l1.243-.916a1.38 1.38 0 0 0 0-2.226l-1.243-.914a.75.75 0 0 1-.272-.826a9.8 9.8 0 0 1 2.205-3.792a.75.75 0 0 1 .85-.174l1.4.615a1.387 1.387 0 0 0 1.93-1.118l.17-1.526a.75.75 0 0 1 .583-.65q1.074-.238 2.201-.252m0 1.5a9 9 0 0 0-1.354.117l-.11.977A2.886 2.886 0 0 1 6.526 7.17l-.899-.394A8.3 8.3 0 0 0 4.28 9.092l.797.587a2.88 2.88 0 0 1 .001 4.643l-.799.588c.32.842.776 1.626 1.348 2.322l.905-.397a2.882 2.882 0 0 1 4.017 2.318l.109.984c.89.15 1.799.15 2.688 0l.11-.984a2.88 2.88 0 0 1 4.018-2.322l.904.396a8.3 8.3 0 0 0 1.348-2.318l-.798-.588a2.88 2.88 0 0 1-.001-4.643l.797-.587a8.3 8.3 0 0 0-1.348-2.317l-.897.393a2.884 2.884 0 0 1-4.023-2.324l-.109-.976a9 9 0 0 0-1.334-.117M12 8.25a3.75 3.75 0 1 1 0 7.5a3.75 3.75 0 0 1 0-7.5m0 1.5a2.25 2.25 0 1 0 0 4.5a2.25 2.25 0 0 0 0-4.5"/></svg> Controles</div>
-        
-        <fluent-tabs id="filter-tabs">
-          <fluent-tab id="tab-all">Todos</fluent-tab>
-          <fluent-tab id="tab-modified">Modificados</fluent-tab>
-          <fluent-tab id="tab-affected">Afectados</fluent-tab>
-        </fluent-tabs>
-        
-        <div class="control-buttons">
-          <fluent-button appearance="secondary" id="btn-reset"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M6.78 2.72a.75.75 0 0 1 0 1.06L4.56 6h8.69a7.75 7.75 0 1 1-7.75 7.75a.75.75 0 0 1 1.5 0a6.25 6.25 0 1 0 6.25-6.25H4.56l2.22 2.22a.75.75 0 1 1-1.06 1.06l-3.5-3.5a.75.75 0 0 1 0-1.06l3.5-3.5a.75.75 0 0 1 1.06 0"/></svg> Reset</fluent-button>
-          <fluent-button appearance="secondary" id="btn-fit"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M4.5 5.75c0-.69.56-1.25 1.25-1.25h2a.75.75 0 0 0 0-1.5h-2A2.75 2.75 0 0 0 3 5.75v2a.75.75 0 0 0 1.5 0zm0 12.5c0 .69.56 1.25 1.25 1.25h2a.75.75 0 0 1 0 1.5h-2A2.75 2.75 0 0 1 3 18.25v-2a.75.75 0 0 1 1.5 0zM18.25 4.5c.69 0 1.25.56 1.25 1.25v2a.75.75 0 0 0 1.5 0v-2A2.75 2.75 0 0 0 18.25 3h-2a.75.75 0 0 0 0 1.5zm1.25 13.75c0 .69-.56 1.25-1.25 1.25h-2a.75.75 0 0 0 0 1.5h2A2.75 2.75 0 0 0 21 18.25v-2a.75.75 0 0 0-1.5 0z"/></svg> Ajustar</fluent-button>
-          <fluent-button appearance="secondary" id="btn-layout"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 9.005a4 4 0 1 1 0 8a4 4 0 0 1 0-8m0 1.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 0 0 0-5M12 5.5c4.613 0 8.596 3.15 9.701 7.564a.75.75 0 1 1-1.455.365a8.504 8.504 0 0 0-16.493.004a.75.75 0 0 1-1.456-.363A10 10 0 0 1 12 5.5"/></svg> Layout</fluent-button>
-        </div>
+      <div class="stat">
+        <div class="stat-value">${graph.meta.stats.dependencies}</div>
+        <div class="stat-label">Dependencias</div>
       </div>
-      
-      <!-- Details Panel -->
-      <div class="details-panel">
-        <div id="node-info">
-          <div class="empty-state">
-            <div class="empty-icon"><svg class="fluent-icon" style="width: 48px; height: 48px;"><use href="#icon-target"/></svg></div>
-            <div class="empty-title">Selecciona un archivo</div>
-            <div class="empty-description">Haz clic en cualquier nodo del grafo para ver sus detalles, cambios y dependencias.</div>
-          </div>
-        </div>
+      <div class="stat">
+        <div class="stat-value">${graph.meta.stats.totalFiles}</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="buttons">
+        <fluent-button appearance="stealth" id="btn-reset">Reset</fluent-button>
+        <fluent-button appearance="stealth" id="btn-fit">Ajustar</fluent-button>
+        <fluent-button appearance="stealth" id="btn-layout">Layout</fluent-button>
+      </div>
+    </div>
+
+    <div class="details" id="node-info">
+      ${graph.meta.aiAnalysis && graph.meta.aiAnalysis.prSummary ? 
+        '<div class="file-card ai-analysis">' +
+        '<div class="ai-header">' +
+          '<svg style="width:20px;height:20px;margin-right:8px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>' +
+          'Análisis AI del PR' +
+        '</div>' +
+        '<div class="ai-content">' +
+          '<div class="ai-text" style="white-space: pre-wrap;">' + graph.meta.aiAnalysis.prSummary.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' +
+        '</div>' +
+      '</div>'
+      : ''}
+      <div class="empty">
+        <div style="font-size:64px; opacity:0.3; margin-bottom:16px;">🎯</div>
+        <div class="empty-title">Selecciona un nodo</div>
+        <p>Haz clic en cualquier archivo del grafo para ver sus detalles e impacto.</p>
       </div>
     </div>
   </div>
-  
+
   <script>
-    const graphData = ${JSON.stringify(graph, null, 2)};
-    
-    // Initialize Cytoscape
+    const graphData = JSON.parse(${JSON.stringify(JSON.stringify(graph))});
+
     const elements = [
-      ...graphData.nodes.map(node => ({
-        data: {
-          id: node.id,
-          label: node.label,
-          modified: node.modified,
-          status: node.status,
-          url: node.url,
-          diff: node.diff
-        }
-      })),
-      ...graphData.edges.map(edge => ({
-        data: {
-          source: edge.from,
-          target: edge.to,
-          type: edge.type || 'imports',
-          line: edge.line
-        }
-      }))
+      ...graphData.nodes.map(n => ({ data: { id: n.id, label: n.label, modified: n.modified, status: n.status, diff: n.diff } })),
+      ...graphData.edges.map(e => ({ data: { source: e.from, target: e.to, line: e.line } }))
     ];
-    
-    let currentLayout = 'cose';
-    let currentFilter = 'all';
-    
+
     const cy = cytoscape({
       container: document.getElementById('cy'),
-      elements: elements,
+      elements,
       style: [
-        {
-          selector: 'node',
-          style: {
-            'background-color': '#2b2b2b',
-            'border-width': 2,
-            'border-color': '#424242',
-            'label': 'data(label)',
-            'color': '#ffffff',
-            'text-valign': 'center',
-            'text-halign': 'center',
-            'font-size': '11px',
-            'width': 50,
-            'height': 50,
-            'font-weight': '600',
-            'font-family': 'Segoe UI'
-          }
-        },
-        {
-          selector: 'node[modified = true]',
-          style: {
-            'background-color': '#d13438',
-            'border-color': '#ff6b6b',
-            'border-width': 3
-          }
-        },
-        {
-          selector: 'node[modified = false]',
-          style: {
-            'background-color': '#f7630c',
-            'border-color': '#ff9f4a'
-          }
-        },
-        {
-          selector: 'edge',
-          style: {
-            'width': 2,
-            'line-color': '#525252',
-            'target-arrow-color': '#525252',
-            'target-arrow-shape': 'triangle',
-            'curve-style': 'bezier',
-            'arrow-scale': 1.2
-          }
-        },
-        {
-          selector: 'node:selected',
-          style: {
-            'border-color': '#0078d4',
-            'border-width': 4
-          }
-        },
-        {
-          selector: '.highlighted',
-          style: {
-            'background-color': '#0078d4',
-            'line-color': '#0078d4',
-            'target-arrow-color': '#0078d4',
-            'border-color': '#4f9dd8'
-          }
-        },
-        {
-          selector: '.dimmed',
-          style: {
-            'opacity': 0.3
-          }
-        }
+        { selector: 'node', style: { 'background-color': '#e1e4e8', 'label': 'data(label)', 'color': '#24292f', 'text-valign': 'center', 'font-size': 12, 'width': 44, 'height': 44 } },
+        { selector: 'node[modified = true]', style: { 'background-color': '#cf222e' } },
+        { selector: 'node[modified = false]', style: { 'background-color': '#9a6700' } },
+        { selector: 'edge', style: { 'width': 1.5, 'line-color': '#d0d7de', 'target-arrow-color': '#d0d7de', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } },
+        { selector: 'node:selected, .highlighted', style: { 'background-color': '#0969da', 'border-width': 3, 'border-color': '#1f6feb' } },
+        { selector: '.highlighted', style: { 'line-color': '#0969da', 'target-arrow-color': '#0969da' } },
+        { selector: '.dimmed', style: { opacity: 0.3 } }
       ],
-      layout: {
-        name: 'cose',
-        animate: true,
-        animationDuration: 500,
-        nodeRepulsion: 10000,
-        idealEdgeLength: 120,
-        edgeElasticity: 100,
-        gravity: 0.1
-      }
+      layout: { name: 'cose', animate: true, idealEdgeLength: 100, nodeRepulsion: 8000 }
     });
-    
-    // Filter tabs
-    document.getElementById('tab-all').addEventListener('click', () => filterNodes('all'));
-    document.getElementById('tab-modified').addEventListener('click', () => filterNodes('modified'));
-    document.getElementById('tab-affected').addEventListener('click', () => filterNodes('affected'));
-    
-    // Control buttons
-    document.getElementById('btn-reset').addEventListener('click', resetView);
-    document.getElementById('btn-fit').addEventListener('click', fitToScreen);
-    document.getElementById('btn-layout').addEventListener('click', toggleLayout);
-    
-    function filterNodes(filter) {
-      currentFilter = filter;
-      
-      if (filter === 'all') {
-        cy.elements().removeClass('dimmed');
-      } else if (filter === 'modified') {
-        cy.elements('node[modified = true]').removeClass('dimmed');
-        cy.elements('node[modified = false]').addClass('dimmed');
-      } else if (filter === 'affected') {
-        cy.elements('node[modified = false]').removeClass('dimmed');
-        cy.elements('node[modified = true]').addClass('dimmed');
-      }
-      
-      cy.fit();
+
+    let currentFilter = 'all';
+    let currentLayoutIndex = 0;
+
+    document.querySelectorAll('fluent-tab').forEach((tab, i) => {
+      tab.addEventListener('click', () => {
+        const filters = ['all', 'modified', 'affected'];
+        currentFilter = filters[i];
+        applyFilter();
+      });
+    });
+
+    document.getElementById('btn-reset').onclick = () => { cy.fit(); cy.center(); cy.elements().removeClass('highlighted dimmed'); applyFilter(); };
+    document.getElementById('btn-fit').onclick = () => cy.fit();
+    document.getElementById('btn-layout').onclick = () => {
+      const layouts = [
+        { name: 'cose', animate: true, idealEdgeLength: 100, nodeRepulsion: 8000 },
+        { name: 'circle', animate: true },
+        { name: 'grid', animate: true },
+        { name: 'concentric', animate: true }
+      ];
+      currentLayoutIndex = (currentLayoutIndex + 1) % layouts.length;
+      cy.layout(layouts[currentLayoutIndex]).run();
+    };
+
+    function applyFilter() {
+      cy.elements().removeClass('dimmed');
+      if (currentFilter === 'modified') cy.nodes('[modified = false]').addClass('dimmed');
+      if (currentFilter === 'affected') cy.nodes('[modified = true]').addClass('dimmed');
     }
-    
-    // Node selection
-    cy.on('tap', 'node', function(evt) {
-      const node = evt.target;
+
+    cy.on('tap', 'node', function(e) {
+      const node = e.target;
       const data = node.data();
-      
-      cy.elements().removeClass('highlighted').removeClass('dimmed');
-      
+      const full = graphData.nodes.find(n => n.id === data.id);
+
+      cy.elements().removeClass('highlighted dimmed');
       node.addClass('highlighted');
       node.connectedEdges().addClass('highlighted');
       node.neighborhood('node').addClass('highlighted');
-      
-      if (currentFilter === 'modified') {
-        cy.elements('node[modified = false]').addClass('dimmed');
-      } else if (currentFilter === 'affected') {
-        cy.elements('node[modified = true]').addClass('dimmed');
+      applyFilter();
+
+      let html = '<div class="file-card"><div class="file-header">' +
+        '<div class="file-title">' + data.label + ' ' + (data.modified ? '<fluent-badge appearance="filled" color="danger">Modificado</fluent-badge>' : '<fluent-badge appearance="filled" color="warning">Afectado</fluent-badge>') + '</div>' +
+        '<div class="file-path">' + data.id + '</div>' +
+        '<div class="meta">' +
+          '<div class="meta-item"><div class="meta-label">Entrantes</div><div class="meta-value">' + node.incomers('node').length + '</div></div>' +
+          '<div class="meta-item"><div class="meta-label">Salientes</div><div class="meta-value">' + node.outgoers('node').length + '</div></div>' +
+        '</div></div></div>';
+
+      if (data.modified) {
+        const incoming = node.incomers('edge').map(e => ({ from: e.source().data('label'), line: e.data('line') }));
+        if (incoming.length) {
+          html += '<div class="file-card"><div class="impact-header">Archivos que serán afectados</div><div class="impact-list">';
+          incoming.forEach(i => html += '<div class="impact-item"><span>' + i.from + '</span><span>' + (i.line ? 'línea ' + i.line : '') + '</span></div>');
+          html += '</div></div>';
+        }
       }
-      
-      const fullNode = graphData.nodes.find(n => n.id === data.id);
-      const hasDiff = fullNode && fullNode.diff;
-      
-      const statusBadge = data.modified 
-        ? '<fluent-badge appearance="filled" color="danger">Modificado</fluent-badge>'
-        : '<fluent-badge appearance="filled" color="warning">Afectado</fluent-badge>';
-      
-      const changeTypeBadge = data.status 
-        ? '<fluent-badge>' + data.status.toUpperCase() + '</fluent-badge>'
-        : '';
-      
-      const incoming = node.incomers('node').length;
-      const outgoing = node.outgoers('node').length;
-      
-      const incomingEdges = node.incomers('edge').map(edge => ({
-        from: edge.data('source'),
-        line: edge.data('line')
-      }));
-      
-      const outgoingEdges = node.outgoers('edge').map(edge => ({
-        to: edge.data('target'),
-        line: edge.data('line')
-      }));
-      
-      let detailsContent = '<div class="file-card">' +
-        '<div class="file-header">' +
-          '<div class="file-title"><svg class="fluent-icon fluent-icon-md" style="margin-right: 8px;"><use href="#icon-document"/></svg>' + data.label + ' ' + statusBadge + ' ' + changeTypeBadge + '</div>' +
-          '<div class="file-path">' + data.id + '</div>' +
-          '<div class="file-meta">' +
-            '<div class="meta-item">' +
-              '<div class="meta-label">Entrantes</div>' +
-              '<div class="meta-value">' + incoming + '</div>' +
-            '</div>' +
-            '<div class="meta-item">' +
-              '<div class="meta-label">Salientes</div>' +
-              '<div class="meta-value">' + outgoing + '</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-      
-      if (data.modified && incomingEdges.length > 0) {
-        detailsContent += '<div class="file-card impact-section">' +
-          '<div class="impact-header"><svg class="fluent-icon fluent-icon-md" style="margin-right: 8px;"><use href="#icon-flash"/></svg>Archivos Afectados</div>' +
-          '<div class="impact-list">';
-        
-        incomingEdges.forEach(edge => {
-          const edgeNode = cy.getElementById(edge.from);
-          if (edgeNode.length > 0) {
-            const edgeData = edgeNode.data();
-            const lineInfo = edge.line ? 'línea ' + edge.line : '';
-            detailsContent += '<div class="impact-item">' +
-              '<span class="impact-file">' + edgeData.label + '</span>' +
-              '<span class="impact-line">' + lineInfo + '</span>' +
-            '</div>';
-          }
-        });
-        
-        detailsContent += '</div></div>';
+
+      if (!data.modified) {
+        const outgoing = node.outgoers('edge').map(e => ({ to: e.target().data('label'), line: e.data('line') }));
+        if (outgoing.length) {
+          html += '<div class="file-card"><div class="impact-header">Depende de archivos modificados</div><div class="impact-list">';
+          outgoing.forEach(function(o) {
+            html += '<div class="impact-item"><span>' + o.to + '</span><span>' + (o.line ? 'línea ' + o.line : '') + '</span></div>';
+          });
+          html += '</div></div>';
+        }
       }
-      
-      if (!data.modified && outgoingEdges.length > 0) {
-        detailsContent += '<div class="file-card impact-section">' +
-          '<div class="impact-header"><svg class="fluent-icon fluent-icon-md" style="margin-right: 8px;"><use href="#icon-box"/></svg>Usa Archivos Modificados</div>' +
-          '<div class="impact-list">';
-        
-        outgoingEdges.forEach(edge => {
-          const edgeNode = cy.getElementById(edge.to);
-          if (edgeNode.length > 0) {
-            const edgeData = edgeNode.data();
-            const lineInfo = edge.line ? 'línea ' + edge.line : '';
-            detailsContent += '<div class="impact-item">' +
-              '<span class="impact-file">' + edgeData.label + '</span>' +
-              '<span class="impact-line">' + lineInfo + '</span>' +
-            '</div>';
-          }
-        });
-        
-        detailsContent += '</div></div>';
+
+      if (full && full.diff) {
+        const escaped = full.diff.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        html += '<div class="file-card"><div class="diff-header">' +
+          '<div>Cambios</div>' +
+          '<div><fluent-button appearance="stealth" size="small" data-node-id="' + data.id + '" onclick="copyDiffById(this)">Copiar</fluent-button></div>' +
+          '</div><div class="diff-content"><pre><code class="language-diff">' + escaped + '</code></pre></div></div>';
       }
-      
-      if (hasDiff) {
-        const escapedDiff = fullNode.diff
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#039;');
-        
-        const safeNodeId = data.id.replace(/[^a-zA-Z0-9]/g, '_');
-        
-        detailsContent += '<div class="file-card diff-section">' +
-          '<div class="diff-header">' +
-            '<div class="diff-title"><svg class="fluent-icon fluent-icon-md" style="margin-right: 8px;"><use href="#icon-document-edit"/></svg>Cambios en el archivo</div>' +
-            '<div class="diff-actions">' +
-              '<fluent-button appearance="secondary" size="small" data-node-id="' + data.id + '" data-action="copy"><svg class="fluent-icon fluent-icon-sm" style="margin-right: 4px;"><use href="#icon-copy"/></svg>Copiar</fluent-button>' +
-              '<fluent-button appearance="secondary" size="small" data-node-id="' + data.id + '" data-action="expand"><svg class="fluent-icon fluent-icon-sm" style="margin-right: 4px;"><use href="#icon-search"/></svg>Expandir</fluent-button>' +
-            '</div>' +
+
+      // Mostrar análisis AI si está disponible
+      if (graphData.meta.aiAnalysis && graphData.meta.aiAnalysis.fileAnalyses && graphData.meta.aiAnalysis.fileAnalyses[data.id]) {
+        const aiData = graphData.meta.aiAnalysis.fileAnalyses[data.id];
+        const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\n/g, '<br>');
+        const aiChanges = escapeHtml(aiData.changes);
+        const aiQuality = escapeHtml(aiData.quality);
+        const aiImprovements = escapeHtml(aiData.improvements);
+        html += '<div class="file-card ai-analysis">' +
+          '<div class="ai-header">' +
+            '<svg style="width:20px;height:20px;margin-right:8px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>' +
+            'Análisis AI' +
           '</div>' +
-          '<div class="diff-content">' +
-            '<pre><code class="language-diff" id="diff-' + safeNodeId + '">' + escapedDiff + '</code></pre>' +
-          '</div>' +
-        '</div>';
-      } else if (data.modified && data.status === 'edit') {
-        detailsContent += '<div class="file-card diff-section">' +
-          '<div class="no-diff-message">' +
-            '<div class="no-diff-icon"><svg class="fluent-icon" style="width: 32px; height: 32px;"><use href="#icon-info"/></svg></div>' +
-            '<p>No se pudieron obtener los cambios para este archivo</p>' +
+          '<div class="ai-content">' +
+            '<div class="ai-section"><strong>📝 Resumen:</strong><div class="ai-text">' + aiChanges + '</div></div>' +
+            '<div class="ai-section"><strong>✅ Calidad:</strong><div class="ai-text">' + aiQuality + '</div></div>' +
+            '<div class="ai-section"><strong>💡 Mejoras:</strong><div class="ai-text">' + aiImprovements + '</div></div>' +
           '</div>' +
         '</div>';
       }
-      
-      document.getElementById('node-info').innerHTML = detailsContent;
-      
-      document.querySelectorAll('fluent-button[data-action]').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const nodeId = this.getAttribute('data-node-id');
-          const action = this.getAttribute('data-action');
-          
-          if (action === 'copy') {
-            copyDiff(nodeId, this);
-          } else if (action === 'expand') {
-            expandDiff(nodeId, this);
-          }
-        });
-      });
-      
-      if (hasDiff) {
-        const diffCodeId = 'diff-' + data.id.replace(/[^a-zA-Z0-9]/g, '_');
-        const codeElement = document.getElementById(diffCodeId);
-        if (codeElement) {
-          hljs.highlightElement(codeElement);
-        }
+
+      document.getElementById('node-info').innerHTML = html;
+      hljs.highlightAll();
+    });
+
+    cy.on('tap', e => { 
+      if (e.target === cy) { 
+        document.getElementById('node-info').innerHTML = '<div class="empty"><div style="font-size:64px; opacity:0.3; margin-bottom:16px;">🎯</div><div class="empty-title">Selecciona un nodo</div><p>Haz clic en cualquier archivo del grafo para ver sus detalles e impacto.</p></div>'; 
+        cy.elements().removeClass('highlighted'); 
+        applyFilter(); 
       }
     });
-    
-    cy.on('tap', function(evt) {
-      if (evt.target === cy) {
-        cy.elements().removeClass('highlighted').removeClass('dimmed');
-        
-        if (currentFilter === 'modified') {
-          cy.elements('node[modified = false]').addClass('dimmed');
-        } else if (currentFilter === 'affected') {
-          cy.elements('node[modified = true]').addClass('dimmed');
-        }
-      }
-    });
-    
-    function resetView() {
-      cy.fit();
-      cy.center();
-      cy.elements().removeClass('highlighted').removeClass('dimmed');
-      
-      if (currentFilter === 'modified') {
-        cy.elements('node[modified = false]').addClass('dimmed');
-      } else if (currentFilter === 'affected') {
-        cy.elements('node[modified = true]').addClass('dimmed');
-      }
-    }
-    
-    function fitToScreen() {
-      cy.fit();
-    }
-    
-    function toggleLayout() {
-      const layouts = ['cose', 'circle', 'grid', 'breadthfirst', 'concentric'];
-      const currentIndex = layouts.indexOf(currentLayout);
-      currentLayout = layouts[(currentIndex + 1) % layouts.length];
-      
-      cy.layout({
-        name: currentLayout,
-        animate: true,
-        animationDuration: 500
-      }).run();
-    }
-    
-    function copyDiff(nodeId, btn) {
-      const fullNode = graphData.nodes.find(n => n.id === nodeId);
-      if (fullNode && fullNode.diff) {
-        navigator.clipboard.writeText(fullNode.diff).then(() => {
-          const originalText = btn.textContent;
-          btn.textContent = '✅ Copiado';
-          setTimeout(() => {
-            btn.textContent = originalText;
-          }, 2000);
+
+    applyFilter();
+    cy.fit();
+
+    // Función para copiar diff usando el botón
+    function copyDiffById(button) {
+      const nodeId = button.getAttribute('data-node-id');
+      const node = graphData.nodes.find(n => n.id === nodeId);
+      if (node && node.diff) {
+        navigator.clipboard.writeText(node.diff).then(() => {
+          alert('¡Diff copiado al portapapeles!');
         }).catch(err => {
           console.error('Error al copiar:', err);
         });
-      }
-    }
-    
-    function expandDiff(nodeId, btn) {
-      const safeId = nodeId.replace(/[^a-zA-Z0-9]/g, '_');
-      const diffElement = document.querySelector('#diff-' + safeId);
-      
-      if (!diffElement) return;
-      
-      const diffContent = diffElement.closest('.diff-content');
-      if (!diffContent) return;
-      
-      const isExpanded = diffContent.style.maxHeight === 'none' || diffContent.style.maxHeight === '';
-      
-      if (isExpanded) {
-        diffContent.style.maxHeight = '500px';
-        btn.innerHTML = '<svg class="fluent-icon fluent-icon-sm" style="margin-right: 4px;"><use href="#icon-search"/></svg>Expandir';
-      } else {
-        diffContent.style.maxHeight = 'none';
-        btn.innerHTML = '<svg class="fluent-icon fluent-icon-sm" style="margin-right: 4px;"><use href="#icon-chevron-down"/></svg>Contraer';
       }
     }
   </script>
@@ -1427,6 +950,66 @@ async function analyzePullRequest(options) {
 
     console.log(chalk.green(`\n✓ Grafo de conocimiento generado en: ${outputFile}`));
     console.log(chalk.gray(`Archivos modificados: ${impactGraph.meta.stats.modifiedFiles} | Archivos afectados: ${impactGraph.meta.stats.affectedFiles} | Dependencias: ${impactGraph.meta.stats.dependencies}`));
+
+    // Análisis con AI si se solicita
+    if (options.ai) {
+      try {
+        require('dotenv').config();
+        console.log(chalk.cyan('\n🤖 Analizando con AI...'));
+        const analyzer = new aiAnalyzer();
+        
+        // Análisis general del PR
+        const prAnalysis = await analyzer.analyzePRImpact(
+          prDetails.title,
+          impactGraph.nodes.filter(n => n.modified),
+          impactGraph.nodes.filter(n => !n.modified).map(n => n.id),
+          impactGraph.edges
+        );
+        
+        impactGraph.meta.aiAnalysis = {
+          prSummary: prAnalysis,
+          fileAnalyses: {},
+          timestamp: new Date().toISOString()
+        };
+        
+        // Análisis por archivo (solo archivos modificados con diff)
+        if (options.aiFull) {
+          console.log(chalk.cyan('📝 Analizando archivos modificados...'));
+          for (const node of impactGraph.nodes.filter(n => n.modified && n.diff)) {
+            try {
+              const [changes, quality, improvements] = await Promise.all([
+                analyzer.analyzeFileChanges(node.id, node.diff),
+                analyzer.evaluateCodeQuality(node.id, node.diff),
+                analyzer.suggestImprovements(node.id, node.diff)
+              ]);
+              
+              impactGraph.meta.aiAnalysis.fileAnalyses[node.id] = {
+                changes,
+                quality,
+                improvements
+              };
+              
+              console.log(chalk.gray(`  ✓ ${node.label}`));
+            } catch (error) {
+              console.log(chalk.yellow(`  ⚠ ${node.label}: ${error.message}`));
+            }
+          }
+        }
+        
+        // Guardar el grafo actualizado con análisis AI
+        fs.writeFileSync(outputFile, JSON.stringify(impactGraph, null, 2));
+        console.log(chalk.green('✓ Análisis AI completado'));
+        
+        // Mostrar resumen del análisis
+        if (!options.html) {
+          console.log(chalk.cyan('\n📊 Análisis de Impacto del PR:\n'));
+          console.log(prAnalysis);
+        }
+      } catch (error) {
+        console.log(chalk.yellow(`\n⚠️  No se pudo completar el análisis AI: ${error.message}`));
+        console.log(chalk.gray('Verifica que AI_API_KEY esté configurada correctamente'));
+      }
+    }
 
     // Generar visualización HTML si se solicita
     if (options.html) {

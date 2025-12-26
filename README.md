@@ -46,20 +46,48 @@ gitbrancher pr list
 
 # Analizar impacto de un PR específico
 gitbrancher pr analyze 144174
+
+# Analizar PR con AI
+gitbrancher pr analyze 144174 --ai
+
+# Análisis completo + visualización HTML
+gitbrancher pr analyze 144174 --ai --ai-full --html --open
 ```
 
 ## Comandos Disponibles
 
 ### Creación de Ramas
 - **`gitbrancher new`** - Crea una nueva rama siguiendo convenciones estandarizadas
+  - `-s, --silent` - Omite el banner de bienvenida
+  - `-t, --type <type>` - Tipo de rama (feature, bugfix, etc.)
+  - `-d, --desc <descriptor>` - Descripción de la rama o ID del ticket
+  - `--push` - Sube la rama recién creada al repositorio remoto
+  - `--no-interactive` - Ejecuta en modo no interactivo (requiere --type y --desc)
+
 - **`gitbrancher list-types`** - Muestra los tipos de ramas disponibles
+
+- **`gitbrancher info`** (alias: `status`) - Muestra información de la rama actual y valida si cumple la convención
 
 ### Gestión de Pull Requests
 - **`gitbrancher pr list`** - Lista los Pull Requests del repositorio
-- **`gitbrancher pr analyze <prId>`** - Analiza un PR y genera grafo de impacto
+  - `-s, --status <status>` - Estado de PRs (active, completed, all) - por defecto: active
+  - `-n, --number <number>` - Número de PRs a mostrar - por defecto: 20
+
+- **`gitbrancher pr analyze <prId>`** - Analiza un PR y genera grafo de impacto con análisis AI opcional
+  - `-o, --output <file>` - Archivo de salida para el grafo JSON - por defecto: .gitbrancher/pr-<prId>.json
+  - `--html` - Generar visualización HTML interactiva
+  - `-m, --mermaid` - Generar diagrama en formato Mermaid (.mmd)
+  - `--open` - Abrir automáticamente la visualización en el navegador (requiere --html)
+  - `--ai` - Habilita análisis con AI
+  - `--ai-full` - Análisis completo de cada archivo modificado (requiere --ai)
 
 ### Configuración
 - **`gitbrancher config`** - Gestiona alias y credenciales
+  - `-a, --alias <alias>` - Define un alias fijo para tus ramas
+  - `--clear-alias` - Borra el alias almacenado previamente
+  - `--azure` - Configura las credenciales de Azure DevOps mediante un asistente interactivo
+  - `--clear-azure` - Elimina la configuración almacenada de Azure DevOps
+
 - **`gitbrancher help`** - Muestra la ayuda completa
 
 ## Tipos de Ramas Soportados
@@ -134,6 +162,60 @@ A partir de la versión 1.1.0, GitBrancher utiliza el **Keychain del sistema ope
 - **Antes**: PAT en texto plano en `~/.config/configstore/`
 - **Ahora**: PAT encriptado por el sistema operativo
 - Protección adicional con políticas del OS
+
+## Análisis con AI
+
+GitBrancher integra **AI** para análisis inteligente de código en Pull Requests, proporcionando insights sobre impacto, calidad y riesgos potenciales.
+
+### Configuración de AI
+
+```bash
+# macOS/Linux - Agregar a ~/.zshrc o ~/.bashrc
+export AI_API_KEY="tu_api_key_aqui"
+
+# Recargar configuración
+source ~/.zshrc
+```
+
+```powershell
+# Windows (PowerShell)
+[System.Environment]::SetEnvironmentVariable('AI_API_KEY', 'tu_api_key_aqui', 'User')
+```
+
+### Uso de AI
+
+#### Análisis Básico
+
+```bash
+# Análisis con AI habilitado
+gitbrancher pr analyze <prId> --ai
+
+# Análisis completo de cada archivo
+gitbrancher pr analyze <prId> --ai --ai-full
+
+# Análisis + Visualización HTML
+gitbrancher pr analyze <prId> --ai --html --open
+```
+
+### Qué Analiza la AI?
+
+#### Análisis del PR Completo (`--ai`)
+- **Alcance del Cambio**: ¿Es localizado o amplio?
+- **Áreas de Impacto**: Componentes afectados
+- **Riesgos Potenciales**: Efectos secundarios
+- **Recomendaciones**: Qué revisar con atención
+
+#### Análisis por Archivo (`--ai-full`)
+- **Resumen**: ¿Qué cambió en cada archivo?
+- **Impacto**: Efecto del cambio
+- **Calidad**: ¿Es simple y claro?
+- **Mejoras**: Sugerencias de optimización
+
+#### Evaluación de Código
+- ✅ **¿Es simple?** - Facilidad de comprensión
+- ✅ **¿Es sencillo?** - Enfoque directo
+- ✅ **¿Repite código?** - Duplicación
+- ✅ **¿Hay mejor manera?** - Sugerencias
 
 ## Análisis de Impacto de PRs
 

@@ -222,6 +222,8 @@ prCommand
   .option('--html', 'Generar visualización HTML interactiva')
   .option('-m, --mermaid', 'Generar diagrama en formato Mermaid (.mmd)')
   .option('--open', 'Abrir automáticamente la visualización en el navegador (requiere --html)')
+  .option('--ai', 'Analizar con AI')
+  .option('--ai-full', 'Análisis completo con AI de cada archivo modificado (requiere --ai)')
   .action(async (prId, options) => {
     printBanner();
     await analyzePullRequest({ prId, ...options });
