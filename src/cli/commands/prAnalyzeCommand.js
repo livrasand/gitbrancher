@@ -48,21 +48,185 @@ function getRepositoryInfo() {
 }
 
 /**
+ * Detecta la rama principal del repositorio
+ * @param {string} repoRoot - Ruta raíz del repositorio
+ * @returns {string} Nombre de la rama principal
+ */
+function detectMainBranch(repoRoot) {
+  const candidates = ['main', 'master', 'develop', 'dev'];
+  
+  for (const branch of candidates) {
+    try {
+      // Verificar si existe origin/branch
+      execSync(`git rev-parse --verify origin/${branch}`, {
+        cwd: repoRoot,
+        stdio: 'ignore'
+      });
+      return branch;
+    } catch (e) {
+      continue;
+    }
+  }
+  
+  // Si no se encuentra ninguna, intentar obtener la rama por defecto de origin
+  try {
+    const defaultBranch = execSync('git symbolic-ref refs/remotes/origin/HEAD', {
+      cwd: repoRoot,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'ignore']
+    }).trim().replace('refs/remotes/origin/', '');
+    
+    if (defaultBranch) {
+      return defaultBranch;
+    }
+  } catch (e) {
+    // Continuar
+  }
+  
+  // Fallback a master
+  return 'master';
+}
+
+/**
  * Genera el contrato JSON del grafo de impacto del PR
  * @param {Object} prDetails - Detalles del PR con archivos modificados
  * @param {string} repoRoot - Ruta raíz del repositorio
  * @returns {Object} Contrato JSON del grafo
  */
 function generateImpactGraph(prDetails, repoRoot) {
-  // Nodos de archivos modificados
-  const modifiedNodes = prDetails.changedFiles.map(file => ({
-    id: file.path,
-    label: path.basename(file.path),
-    kind: 'file',
-    status: file.changeType.toLowerCase(),
-    modified: true,
-    url: file.url
-  }));
+  // Hacer fetch de las ramas remotas para asegurar que tenemos la información actualizada
+  try {
+    execSync('git fetch origin --quiet', { 
+      cwd: repoRoot, 
+      stdio: 'ignore',
+      timeout: 10000 
+    });
+  } catch (e) {
+    console.log(chalk.yellow('Advertencia: No se pudo actualizar referencias remotas'));
+  }
+  
+  // Detectar la rama principal automáticamente
+  const mainBranch = detectMainBranch(repoRoot);
+  console.log(chalk.gray(`Usando rama base: ${mainBranch}`));
+  
+  // Nodos de archivos modificados con diff
+  const modifiedNodes = prDetails.changedFiles.map(file => {
+    let diff = null;
+    
+    // Obtener diff solo para archivos editados
+    if (file.changeType.toLowerCase() === 'edit') {
+      try {
+        // Normalizar path (remover / inicial si existe)
+        const normalizedPath = file.path.startsWith('/') ? file.path.substring(1) : file.path;
+        
+        // Estrategia más directa: obtener contenidos y compararlos
+        let contentMain = null;
+        let contentPR = null;
+        
+        // Obtener contenido del archivo en la rama principal
+        try {
+          contentMain = execSync(`git show origin/${mainBranch}:"${normalizedPath}"`, {
+            cwd: repoRoot,
+            encoding: 'utf-8',
+            maxBuffer: 1024 * 1024 * 5,
+            stdio: ['pipe', 'pipe', 'ignore'],
+            timeout: 3000
+          });
+        } catch (e) {
+          // Archivo no existe en main (puede ser nuevo)
+        }
+        
+        // Obtener contenido del archivo en la rama del PR
+        try {
+          contentPR = execSync(`git show origin/${prDetails.sourceRefName}:"${normalizedPath}"`, {
+            cwd: repoRoot,
+            encoding: 'utf-8',
+            maxBuffer: 1024 * 1024 * 5,
+            stdio: ['pipe', 'pipe', 'ignore'],
+            timeout: 3000
+          });
+        } catch (e) {
+          // Archivo no existe en PR (puede estar eliminado)
+        }
+        
+        // Si tenemos ambos contenidos, generar diff
+        if (contentMain !== null && contentPR !== null) {
+          // Crear archivos temporales para comparar
+          const tmpDir = require('os').tmpdir();
+          const tmpMain = path.join(tmpDir, `gitbrancher_main_${Date.now()}.tmp`);
+          const tmpPR = path.join(tmpDir, `gitbrancher_pr_${Date.now()}.tmp`);
+          
+          try {
+            fs.writeFileSync(tmpMain, contentMain);
+            fs.writeFileSync(tmpPR, contentPR);
+            
+            // Generar diff usando git diff --no-index
+            diff = execSync(`git diff --no-index "${tmpMain}" "${tmpPR}"`, {
+              cwd: repoRoot,
+              encoding: 'utf-8',
+              maxBuffer: 1024 * 1024 * 5,
+              stdio: ['pipe', 'pipe', 'ignore']
+            }).trim();
+            
+            // Limpiar archivos temporales
+            fs.unlinkSync(tmpMain);
+            fs.unlinkSync(tmpPR);
+            
+            // Reemplazar nombres de archivos temporales por el path real en el diff
+            if (diff) {
+              diff = diff
+                .replace(new RegExp(tmpMain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), `a/${normalizedPath}`)
+                .replace(new RegExp(tmpPR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), `b/${normalizedPath}`);
+            }
+          } catch (e) {
+            // Limpiar archivos temporales si existen
+            try { fs.unlinkSync(tmpMain); } catch {}
+            try { fs.unlinkSync(tmpPR); } catch {}
+          }
+        }
+        
+        // Si no se pudo obtener con el método anterior, intentar estrategias alternativas
+        if (!diff) {
+          const strategies = [
+            `git diff origin/${mainBranch}...origin/${prDetails.sourceRefName} -- "${normalizedPath}"`,
+            `git diff origin/${mainBranch}..origin/${prDetails.sourceRefName} -- "${normalizedPath}"`,
+            `git diff origin/${prDetails.targetRefName}...origin/${prDetails.sourceRefName} -- "${normalizedPath}"`,
+          ];
+          
+          for (const cmd of strategies) {
+            try {
+              const result = execSync(cmd, {
+                cwd: repoRoot,
+                encoding: 'utf-8',
+                maxBuffer: 1024 * 1024 * 5,
+                stdio: ['pipe', 'pipe', 'ignore'],
+                timeout: 3000
+              }).trim();
+              
+              if (result && result.length > 0) {
+                diff = result;
+                break;
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+        }
+      } catch (error) {
+        // Si falla, continuar sin diff
+      }
+    }
+    
+    return {
+      id: file.path,
+      label: path.basename(file.path),
+      kind: 'file',
+      status: file.changeType.toLowerCase(),
+      modified: true,
+      url: file.url,
+      diff: diff
+    };
+  });
 
   // Analizar dependencias entre archivos para generar edges
   const { edges, affectedFiles } = analyzeDependencies(prDetails.changedFiles, repoRoot, {
@@ -117,6 +281,9 @@ function generateVisualization(graph, htmlFile) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PR Impact Graph - ${graph.meta.prId}</title>
   <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/diff.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -301,6 +468,84 @@ function generateVisualization(graph, htmlFile) {
       margin-bottom: 12px;
       opacity: 0.5;
     }
+    
+    .diff-container {
+      margin-top: 15px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    
+    .diff-header {
+      padding: 10px 15px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      font-size: 12px;
+      font-weight: 600;
+      color: #58a6ff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .diff-content {
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    
+    .diff-content pre {
+      margin: 0;
+      padding: 15px;
+      background: #0d1117;
+      overflow-x: auto;
+    }
+    
+    .diff-content code {
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+      font-size: 12px;
+    }
+    
+    .hljs {
+      background: #0d1117 !important;
+      color: #c9d1d9;
+    }
+    
+    .hljs-addition {
+      background: #23863633;
+      color: #7ee787;
+      display: block;
+    }
+    
+    .hljs-deletion {
+      background: #da363333;
+      color: #ffa198;
+      display: block;
+    }
+    
+    .no-diff-message {
+      padding: 20px;
+      text-align: center;
+      color: #8b949e;
+      font-size: 13px;
+    }
+    
+    .copy-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .copy-btn:hover {
+      background: #30363d;
+    }
   </style>
 </head>
 <body>
@@ -470,6 +715,40 @@ function generateVisualization(graph, htmlFile) {
       const incoming = node.incomers('node').length;
       const outgoing = node.outgoers('node').length;
       
+      // Buscar el nodo completo en graphData para obtener el diff
+      const fullNode = graphData.nodes.find(n => n.id === data.id);
+      const hasDiff = fullNode && fullNode.diff;
+      
+      let diffSection = '';
+      if (hasDiff) {
+        const escapedDiff = fullNode.diff
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+        
+        diffSection = \`
+          <div class="diff-container">
+            <div class="diff-header">
+              <span>📝 Cambios en el archivo</span>
+              <button class="copy-btn" onclick="copyDiff('\${data.id}')">Copiar</button>
+            </div>
+            <div class="diff-content">
+              <pre><code class="language-diff" id="diff-\${data.id.replace(/[^a-zA-Z0-9]/g, '_')}">\${escapedDiff}</code></pre>
+            </div>
+          </div>
+        \`;
+      } else if (data.modified && data.status === 'edit') {
+        diffSection = \`
+          <div class="diff-container">
+            <div class="no-diff-message">
+              ℹ️ No se pudo obtener el diff para este archivo
+            </div>
+          </div>
+        \`;
+      }
+      
       document.getElementById('node-info').innerHTML = \`
         <div class="node-details">
           <h3>\${data.label}</h3>
@@ -491,7 +770,17 @@ function generateVisualization(graph, htmlFile) {
           </div>
           \${azureLink}
         </div>
+        \${diffSection}
       \`;
+      
+      // Aplicar resaltado de sintaxis al diff
+      if (hasDiff) {
+        const diffCodeId = 'diff-' + data.id.replace(/[^a-zA-Z0-9]/g, '_');
+        const codeElement = document.getElementById(diffCodeId);
+        if (codeElement) {
+          hljs.highlightElement(codeElement);
+        }
+      }
     });
     
     cy.on('tap', function(evt) {
@@ -520,6 +809,24 @@ function generateVisualization(graph, htmlFile) {
         animate: true,
         animationDuration: 500
       }).run();
+    }
+    
+    function copyDiff(nodeId) {
+      const fullNode = graphData.nodes.find(n => n.id === nodeId);
+      if (fullNode && fullNode.diff) {
+        navigator.clipboard.writeText(fullNode.diff).then(() => {
+          const btn = event.target;
+          const originalText = btn.textContent;
+          btn.textContent = '✓ Copiado';
+          btn.style.background = '#238636';
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = '#21262d';
+          }, 2000);
+        }).catch(err => {
+          console.error('Error al copiar:', err);
+        });
+      }
     }
   </script>
 </body>
