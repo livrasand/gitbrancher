@@ -111,6 +111,7 @@ async function consumeCredits(amount) {
 }
 
 module.exports = {
+  SERVER_URL,
   getToken,
   setToken,
   clearToken,

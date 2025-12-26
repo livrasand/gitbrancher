@@ -47,6 +47,7 @@
     "inquirer-fuzzy-path": "^2.3.0",
     "inquirer-maxlength-input-prompt": "^1.0.2",
     "keytar": "^7.9.0",
+    "open": "^11.0.0",
     "simple-git": "^3.23.0"
   }
 }
