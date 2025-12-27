@@ -28,218 +28,218 @@
 
 # GitBrancher
 
-**CLI moderno para crear ramas Git con convenciones estandarizadas y análisis de impacto de Pull Requests**
+**Modern CLI for creating Git branches with standardized conventions and Pull Request impact analysis**
 
-GitBrancher es una herramienta CLI con branding moderno que estandariza la creación de ramas Git aplicando convenciones claras y consistentes. Facilita el trabajo colaborativo, la automatización de CI/CD y el análisis de impacto de cambios en repositorios.
+GitBrancher is a modern CLI tool with branding that standardizes Git branch creation by applying clear and consistent conventions. It facilitates collaborative work, CI/CD automation, and impact analysis of changes in repositories.
 
-## Instalación
+## Installation
 
 ```bash
 npm i @livrasand/gitbrancher
 ```
 
-## Inicio Rápido
+## Quick Start
 
 ```bash
-# Crear una nueva rama con flujo interactivo
+# Create a new branch with interactive flow
 gitbrancher new
 
-# Listar Pull Requests del repositorio
+# List Pull Requests from the repository
 gitbrancher pr list
 
-# Analizar impacto de un PR específico
+# Analyze impact of a specific PR
 gitbrancher pr analyze 144174
 
-# Analizar PR con AI
+# Analyze PR with AI
 gitbrancher pr analyze 144174 --ai
 
-# Análisis completo + visualización HTML
+# Full analysis + HTML visualization
 gitbrancher pr analyze 144174 --ai --ai-full --html --open
 ```
 
-## Comandos Disponibles
+## Available Commands
 
-### Creación de Ramas
-- **`gitbrancher new`** - Crea una nueva rama siguiendo convenciones estandarizadas
-  - `-s, --silent` - Omite el banner de bienvenida
-  - `-t, --type <type>` - Tipo de rama (feature, bugfix, etc.)
-  - `-d, --desc <descriptor>` - Descripción de la rama o ID del ticket
-  - `--push` - Sube la rama recién creada al repositorio remoto
-  - `--no-interactive` - Ejecuta en modo no interactivo (requiere --type y --desc)
+### Branch Creation
+- **`gitbrancher new`** - Creates a new branch following standardized conventions
+  - `-s, --silent` - Omits the welcome banner
+  - `-t, --type <type>` - Branch type (feature, bugfix, etc.)
+  - `-d, --desc <descriptor>` - Branch description or ticket ID
+  - `--push` - Pushes the newly created branch to the remote repository
+  - `--no-interactive` - Runs in non-interactive mode (requires --type and --desc)
 
-- **`gitbrancher list-types`** - Muestra los tipos de ramas disponibles
+- **`gitbrancher list-types`** - Shows available branch types
 
-- **`gitbrancher info`** (alias: `status`) - Muestra información de la rama actual y valida si cumple la convención
+- **`gitbrancher info`** (alias: `status`) - Shows information about the current branch and validates if it complies with the convention
 
-### Gestión de Pull Requests
-- **`gitbrancher pr list`** - Lista los Pull Requests del repositorio
-  - `-s, --status <status>` - Estado de PRs (active, completed, all) - por defecto: active
-  - `-n, --number <number>` - Número de PRs a mostrar - por defecto: 20
+### Pull Request Management
+- **`gitbrancher pr list`** - Lists the Pull Requests of the repository
+  - `-s, --status <status>` - PR status (active, completed, all) - default: active
+  - `-n, --number <number>` - Number of PRs to show - default: 20
 
-- **`gitbrancher pr analyze <prId>`** - Analiza un PR y genera grafo de impacto con análisis AI opcional
-  - `-o, --output <file>` - Archivo de salida para el grafo JSON - por defecto: .gitbrancher/pr-<prId>.json
-  - `--html` - Generar visualización HTML interactiva
-  - `-m, --mermaid` - Generar diagrama en formato Mermaid (.mmd)
-  - `--open` - Abrir automáticamente la visualización en el navegador (requiere --html)
-  - `--ai` - Habilita análisis con AI
-  - `--ai-full` - Análisis completo de cada archivo modificado (requiere --ai)
+- **`gitbrancher pr analyze <prId>`** - Analyzes a PR and generates impact graph with optional AI analysis
+  - `-o, --output <file>` - Output file for the JSON graph - default: .gitbrancher/pr-<prId>.json
+  - `--html` - Generate interactive HTML visualization
+  - `-m, --mermaid` - Generate diagram in Mermaid format (.mmd)
+  - `--open` - Automatically open the visualization in the browser (requires --html)
+  - `--ai` - Enables AI analysis
+  - `--ai-full` - Full analysis of each modified file (requires --ai)
 
-### Configuración
-- **`gitbrancher config`** - Gestiona alias y credenciales
-  - `-a, --alias <alias>` - Define un alias fijo para tus ramas
-  - `--clear-alias` - Borra el alias almacenado previamente
-  - `--azure` - Configura las credenciales de Azure DevOps mediante un asistente interactivo
-  - `--clear-azure` - Elimina la configuración almacenada de Azure DevOps
+### Configuration
+- **`gitbrancher config`** - Manages aliases and credentials
+  - `-a, --alias <alias>` - Defines a fixed alias for your branches
+  - `--clear-alias` - Deletes the previously stored alias
+  - `--azure` - Configures Azure DevOps credentials through an interactive assistant
+  - `--clear-azure` - Removes the stored Azure DevOps configuration
 
-- **`gitbrancher help`** - Muestra la ayuda completa
+- **`gitbrancher help`** - Shows complete help
 
-## Tipos de Ramas Soportados
+## Supported Branch Types
 
-| Tipo | Descripción | Prefijo sugerido |
+| Type | Description | Suggested Prefix |
 |------|-------------|------------------|
-| `feature` | Nuevas funcionalidades | feature/ |
-| `bugfix` | Corrección de bugs | bugfix/ |
-| `hotfix` | Corrección crítica en producción | hotfix/ |
-| `chore` | Tareas de mantenimiento | chore/ |
-| `docs` | Documentación | docs/ |
-| `test` | Pruebas | test/ |
-| `refactor` | Refactorización de código | refactor/ |
+| `feature` | New features | feature/ |
+| `bugfix` | Bug fixes | bugfix/ |
+| `hotfix` | Critical fixes in production | hotfix/ |
+| `chore` | Maintenance tasks | chore/ |
+| `docs` | Documentation | docs/ |
+| `test` | Tests | test/ |
+| `refactor` | Code refactoring | refactor/ |
 
-## Integración con Azure DevOps
+## Azure DevOps Integration
 
-GitBrancher se integra completamente con Azure DevOps para proporcionar una experiencia de desarrollo fluida.
+GitBrancher fully integrates with Azure DevOps to provide a seamless development experience.
 
-### Configuración de Credenciales
+### Credential Configuration
 
 ```bash
 gitbrancher config --azure
 ```
 
-**¿Qué hace?**
-- Configura organización, proyecto y Personal Access Token (PAT)
-- Almacena credenciales de forma segura en el Keychain del sistema
-- Soporta configuración por variables de entorno
+**What does it do?**
+- Configures organization, project, and Personal Access Token (PAT)
+- Stores credentials securely in the system Keychain
+- Supports configuration via environment variables
 
-### Flujo de Trabajo con Work Items
+### Workflow with Work Items
 
 ```bash
 gitbrancher new
 ```
 
-Cuando tienes credenciales configuradas:
-1. Lista automáticamente tus work items asignados
-2. Sugiere tipo de rama basado en el work item
-3. Prellena el descriptor con ID y título
-4. Crea la rama con formato `<usuario>/<tipo>/<descriptor>`
+When you have credentials configured:
+1. Automatically lists your assigned work items
+2. Suggests branch type based on the work item
+3. Fills the descriptor with ID and title
+4. Creates the branch with format `<user>/<type>/<descriptor>`
 
-### Gestión de Pull Requests
+### Pull Request Management
 
 ```bash
-# Listar PRs activos
+# List active PRs
 gitbrancher pr list
 
-# Analizar impacto de un PR específico
+# Analyze impact of a specific PR
 gitbrancher pr analyze 144174
 ```
 
-**Características del análisis:**
-- Lista archivos modificados
-- Detecta dependencias entre archivos
-- Identifica archivos afectados indirectamente
-- Genera grafo JSON de impacto completo
+**Analysis features:**
+- Lists modified files
+- Detects dependencies between files
+- Identifies indirectly affected files
+- Generates complete impact JSON graph
 
-## Seguridad y Almacenamiento
+## Security and Storage
 
-### Keychain Seguro (v1.1.0+)
+### Secure Keychain (v1.1.0+)
 
-A partir de la versión 1.1.0, GitBrancher utiliza el **Keychain del sistema operativo** para proteger tus credenciales:
+Starting from version 1.1.0, GitBrancher uses the **operating system Keychain** to protect your credentials:
 
 - **macOS**: Keychain Access
 - **Windows**: Credential Manager
 - **Linux**: GNOME Keyring / libsecret
 
-**Migración automática:** Si tenías credenciales anteriores, se migran automáticamente al sistema seguro.
+**Automatic migration:** If you had previous credentials, they are automatically migrated to the secure system.
 
-### Protección de Credenciales
+### Credential Protection
 
-- **Antes**: PAT en texto plano en `~/.config/configstore/`
-- **Ahora**: PAT encriptado por el sistema operativo
-- Protección adicional con políticas del OS
+- **Before**: PAT in plain text in `~/.config/configstore/`
+- **Now**: PAT encrypted by the operating system
+- Additional protection with OS policies
 
-## Autenticación
+## Authentication
 
-GitBrancher requiere autenticación para acceder a funciones avanzadas como análisis con AI.
+GitBrancher requires authentication to access advanced features like AI analysis.
 
-### Registro
+### Registration
 
 ```bash
 gitbrancher register
 ```
 
-### Inicio de sesión
+### Login
 
 ```bash
 gitbrancher login
 ```
 
-### Cierre de sesión
+### Logout
 
 ```bash
 gitbrancher logout
 ```
 
-## Análisis con AI
+## AI Analysis
 
-GitBrancher integra **AI** para análisis inteligente de código en Pull Requests, proporcionando insights sobre impacto, calidad y riesgos potenciales.
+GitBrancher integrates **AI** for intelligent code analysis in Pull Requests, providing insights on impact, quality, and potential risks.
 
-Requiere autenticación previa con gitbrancher login.
+Requires prior authentication with gitbrancher login.
 
-### Uso de AI
+### AI Usage
 
-#### Análisis Básico
+#### Basic Analysis
 
 ```bash
-# Análisis con AI habilitado
+# Analysis with AI enabled
 gitbrancher pr analyze <prId> --ai
 
-# Análisis completo de cada archivo
+# Full analysis of each file
 gitbrancher pr analyze <prId> --ai --ai-full
 
-# Análisis + Visualización HTML
+# Analysis + HTML Visualization
 gitbrancher pr analyze <prId> --ai --html --open
 ```
 
-### Qué Analiza la AI?
+### What does the AI analyze?
 
-#### Análisis del PR Completo (`--ai`)
-- **Alcance del Cambio**: ¿Es localizado o amplio?
-- **Áreas de Impacto**: Componentes afectados
-- **Riesgos Potenciales**: Efectos secundarios
-- **Recomendaciones**: Qué revisar con atención
+#### Complete PR Analysis (`--ai`)
+- **Change Scope**: Is it localized or broad?
+- **Impact Areas**: Affected components
+- **Potential Risks**: Side effects
+- **Recommendations**: What to review carefully
 
-#### Análisis por Archivo (`--ai-full`)
-- **Resumen**: ¿Qué cambió en cada archivo?
-- **Impacto**: Efecto del cambio
-- **Calidad**: ¿Es simple y claro?
-- **Mejoras**: Sugerencias de optimización
+#### Per-File Analysis (`--ai-full`)
+- **Summary**: What changed in each file?
+- **Impact**: Effect of the change
+- **Quality**: Is it simple and clear?
+- **Improvements**: Optimization suggestions
 
-#### Evaluación de Código
-- ✅ **¿Es simple?** - Facilidad de comprensión
-- ✅ **¿Es sencillo?** - Enfoque directo
-- ✅ **¿Repite código?** - Duplicación
-- ✅ **¿Hay mejor manera?** - Sugerencias
+#### Code Evaluation
+- ✅ **Is it simple?** - Ease of understanding
+- ✅ **Is it straightforward?** - Direct approach
+- ✅ **Does it repeat code?** - Duplication
+- ✅ **Is there a better way?** - Suggestions
 
-## Análisis de Impacto de PRs
+## Pull Request Impact Analysis
 
-GitBrancher puede analizar el impacto de un Pull Request generando un grafo completo de dependencias.
+GitBrancher can analyze the impact of a Pull Request by generating a complete dependency graph.
 
-### Comando `pr analyze`
+### `pr analyze` Command
 
 ```bash
-gitbrancher pr analyze <prId> [--output archivo.json]
+gitbrancher pr analyze <prId> [--output file.json]
 ```
 
-### Grafo de Impacto Generado
+### Generated Impact Graph
 
 ```json
 {
@@ -286,93 +286,93 @@ gitbrancher pr analyze <prId> [--output archivo.json]
 }
 ```
 
-### Tipos de Nodos
-- **`modified: true`** - Archivos modificados directamente en el PR
-- **`modified: false`** - Archivos afectados que importan los modificados
+### Node Types
+- **`modified: true`** - Files directly modified in the PR
+- **`modified: false`** - Affected files that import the modified ones
 
-## Validaciones de Nombres de Rama
+## Branch Name Validations
 
-GitBrancher implementa validaciones robustas para garantizar nombres de rama consistentes y compatibles con Git.
+GitBrancher implements robust validations to ensure consistent and Git-compatible branch names.
 
-### Reglas de Validación
+### Validation Rules
 
-1. **Caracteres especiales**: Solo letras, números, espacios y guiones
-2. **Nombres reservados**: Evita `master`, `main`, `develop`, `head`, etc.
-3. **Longitud**: Máximo 255 caracteres total, 50 por segmento
-4. **Separadores**: Sin barras o guiones consecutivos
-5. **Segmentos vacíos**: Todos los componentes deben tener contenido
+1. **Special characters**: Only letters, numbers, spaces, and hyphens
+2. **Reserved names**: Avoid `master`, `main`, `develop`, `head`, etc.
+3. **Length**: Maximum 255 characters total, 50 per segment
+4. **Separators**: No consecutive slashes or hyphens
+5. **Empty segments**: All components must have content
 
-### Ejemplos Válidos
+### Valid Examples
 
 ```bash
-# Resultado: user/feature/add-login
+# Result: user/feature/add-login
 gitbrancher new
 
 # Input: userAlias="john doe", branchType="feature", descriptor="add user login"
-# Resultado: john-doe/feature/add-user-login
+# Result: john-doe/feature/add-user-login
 ```
 
-### Ejemplos Inválidos
+### Invalid Examples
 
 ```bash
-# Caracteres especiales
-user@domain/feature/test → Error: caracteres especiales no permitidos
+# Special characters
+user@domain/feature/test → Error: special characters not allowed
 
-# Nombre reservado
-user/master/fix → Error: "master" está reservado
+# Reserved name
+user/master/fix → Error: "master" is reserved
 
-# Demasiado largo
-user(feature/very-long-descriptor...) → Error: excede límites
+# Too long
+user(feature/very-long-descriptor...) → Error: exceeds limits
 ```
 
-## Configuración Avanzada
+## Advanced Configuration
 
-### Variables de Entorno
+### Environment Variables
 
 ```bash
-# Alias fijo
-export GITBRANCHER_USER_ALIAS="mi-alias"
+# Fixed alias
+export GITBRANCHER_USER_ALIAS="my-alias"
 
 # Azure DevOps
-export GITBRANCHER_AZURE_ORG="mi-organizacion"
-export GITBRANCHER_AZURE_PROJECT="mi-proyecto"
-export GITBRANCHER_AZURE_PAT="mi-token-seguro"
+export GITBRANCHER_AZURE_ORG="my-organization"
+export GITBRANCHER_AZURE_PROJECT="my-project"
+export GITBRANCHER_AZURE_PAT="my-secure-token"
 ```
 
-### Configuración Persistente
+### Persistent Configuration
 
 ```bash
-# Configurar alias
-gitbrancher config --alias mi-alias
+# Configure alias
+gitbrancher config --alias my-alias
 
-# Configurar Azure DevOps
+# Configure Azure DevOps
 gitbrancher config --azure
 
-# Limpiar configuraciones
+# Clear configurations
 gitbrancher config --clear-alias
 gitbrancher config --clear-azure
 ```
 
-## Contribución
+## Contribution
 
-### Requisitos de Desarrollo
+### Development Requirements
 
 ```bash
-# Clonar y instalar
+# Clone and install
 git clone https://github.com/livrasand/gitbrancher.git
 cd gitbrancher
 npm install
 
-# Desarrollar
-npm run build      # Compilar TypeScript/Svelte
-npm run check      # Ejecutar linters y validaciones
-npm run ci-test    # Ejecutar pruebas en contenedor
+# Develop
+npm run build      # Compile TypeScript/Svelte
+npm run check      # Run linters and validations
+npm run ci-test    # Run tests in container
 
-# Probar localmente
+# Test locally
 npm link
 gitbrancher --help
 ```
 
 ---
 
-**GitBrancher** - Estandarizando el desarrollo colaborativo, un commit a la vez.
+**GitBrancher** - Standardizing collaborative development, one commit at a time.
