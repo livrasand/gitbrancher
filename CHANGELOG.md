@@ -5,6 +5,45 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [2.0.1] - 2026-01-01
+
+### 🛠️ Correcciones y Mejoras
+- **Estabilidad de la Visualización HTML**: Corregidos errores que causaban el cierre inesperado de la visualización debido a caracteres especiales en el contenido del diff.
+- **Protección de Datos**: Los datos del grafo ahora se incrustan usando Base64 en lugar de inyección directa de JSON, evitando errores de sintaxis en el navegador.
+- **Selectores de Cytoscape**: Corregidos los selectores de nodos para usar el escape adecuado, resolviendo problemas de renderizado en casos borde.
+- **Refactorización de JavaScript**: El código generado para la visualización ahora es más robusto y fácil de mantener, eliminando concatenaciones de strings frágiles.
+- **Manejo de Créditos AI**: Mejorada la retroalimentación y el manejo de errores al consumir créditos, incluyendo información detallada para diagnóstico.
+
+## [2.0.0] - 2026-01-01
+
+### ✨ Nuevas Funciones
+- **Análisis de Impacto con IA**: Nuevo comando `pr analyze` que utiliza inteligencia artificial para analizar el impacto de los Pull Requests.
+  - Opciones `--ai` (análisis estándar) y `--ai-full` (análisis profundo).
+  - Información detallada por archivo, dependencias afectadas y contexto del cambio.
+- **Visualización Interactiva Avanzada**: Generación automática de gráficos de impacto interactivos.
+  - Detección automática de rama base.
+  - Diffs integrados con resaltado de sintaxis y copiado rápido.
+  - Vista detallada de archivos afectados y números de línea.
+  - Exportación a formato Mermaid.
+- **Autenticación con GitHub OAuth**: Nuevo sistema moderno de inicio de sesión que reemplaza el uso de email/password.
+  - Apertura automática del navegador para autenticación.
+  - Servidor local para captura automática de token.
+  - Soporte para parámetro `--token` en flujos automatizados.
+- **Sistema de Créditos AI**: Nuevo comando `credits` para consultar el balance disponible para análisis de IA.
+- **Experiencia CLI Consistente**: Reemplazo total de emojis por indicadores de estado basados en texto (`[SUCCESS]`, `[ERROR]`, `[WARNING]`, etc.) para mayor compatibilidad con todas las terminales y entornos CI/CD.
+
+### ⚠️ Cambios Disruptivos (Breaking Changes)
+- **Eliminación de Auth Tradicional**: Ya no se soporta el inicio de sesión con email y contraseña; ahora es 100% GitHub OAuth.
+- **Requisito de Auth para IA**: El análisis de IA requiere inicio de sesión obligatorio.
+- **Formato de Salida**: El formato de los mensajes en consola ha cambiado radicalmente para ser compatible con logs.
+
+### 🔧 Mejoras Técnicas
+- Servidor HTTP local integrado para callbacks de OAuth.
+- Estandarización de secciones de análisis en CLI y HTML.
+- Mejorada la separación entre la lógica de CLI, visualización y backend.
+
+
+
 ## [1.2.0] - 2025-12-24
 
 ### ✨ Mejoras
@@ -73,4 +112,9 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
+[2.0.1]: https://github.com/livrasand/gitbrancher/releases/tag/v2.0.1
+[2.0.0]: https://github.com/livrasand/gitbrancher/releases/tag/v2.0.0
+[1.2.0]: https://github.com/livrasand/gitbrancher/releases/tag/v1.2.0
+[1.1.0]: https://github.com/livrasand/gitbrancher/releases/tag/v1.1.0
+[1.0.1]: https://github.com/livrasand/gitbrancher/releases/tag/v1.0.1
 [1.0.0]: https://github.com/livrasand/gitbrancher/releases/tag/v1.0.0
