@@ -106,7 +106,20 @@ async function consumeCredits(amount) {
     if (error.response?.status === 402) {
       return { success: false, reason: 'insufficient_credits' };
     }
-    return { success: false, reason: 'error' };
+    // Logging mejorado para debugging
+    const errorDetails = {
+      status: error.response?.status,
+      message: error.response?.data?.error || error.message,
+      endpoint: '/api/ai/consume'
+    };
+    if (process.env.DEBUG) {
+      console.error('[DEBUG] consumeCredits error:', errorDetails);
+    }
+    return {
+      success: false,
+      reason: 'error',
+      details: errorDetails
+    };
   }
 }
 

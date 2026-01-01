@@ -57,7 +57,7 @@ function getRepositoryInfo() {
  */
 function detectMainBranch(repoRoot) {
   const candidates = ['main', 'master', 'develop', 'dev'];
-  
+
   for (const branch of candidates) {
     try {
       // Verificar si existe origin/branch
@@ -70,7 +70,7 @@ function detectMainBranch(repoRoot) {
       continue;
     }
   }
-  
+
   // Si no se encuentra ninguna, intentar obtener la rama por defecto de origin
   try {
     const defaultBranch = execSync('git symbolic-ref refs/remotes/origin/HEAD', {
@@ -78,14 +78,14 @@ function detectMainBranch(repoRoot) {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'ignore']
     }).trim().replace('refs/remotes/origin/', '');
-    
+
     if (defaultBranch) {
       return defaultBranch;
     }
   } catch (e) {
     // Continuar
   }
-  
+
   // Fallback a master
   return 'master';
 }
@@ -99,33 +99,33 @@ function detectMainBranch(repoRoot) {
 function generateImpactGraph(prDetails, repoRoot) {
   // Hacer fetch de las ramas remotas para asegurar que tenemos la información actualizada
   try {
-    execSync('git fetch origin --quiet', { 
-      cwd: repoRoot, 
+    execSync('git fetch origin --quiet', {
+      cwd: repoRoot,
       stdio: 'ignore',
-      timeout: 10000 
+      timeout: 10000
     });
   } catch (e) {
     console.log(chalk.yellow('Advertencia: No se pudo actualizar referencias remotas'));
   }
-  
+
   // Detectar la rama principal automáticamente
   const mainBranch = detectMainBranch(repoRoot);
   console.log(chalk.gray(`Usando rama base: ${mainBranch}`));
-  
+
   // Nodos de archivos modificados con diff
   const modifiedNodes = prDetails.changedFiles.map(file => {
     let diff = null;
-    
+
     // Obtener diff solo para archivos editados
     if (file.changeType.toLowerCase() === 'edit') {
       try {
         // Normalizar path (remover / inicial si existe)
         const normalizedPath = file.path.startsWith('/') ? file.path.substring(1) : file.path;
-        
+
         // Estrategia más directa: obtener contenidos y compararlos
         let contentMain = null;
         let contentPR = null;
-        
+
         // Obtener contenido del archivo en la rama principal
         try {
           contentMain = execSync(`git show origin/${mainBranch}:"${normalizedPath}"`, {
@@ -138,7 +138,7 @@ function generateImpactGraph(prDetails, repoRoot) {
         } catch (e) {
           // Archivo no existe en main (puede ser nuevo)
         }
-        
+
         // Obtener contenido del archivo en la rama del PR
         try {
           contentPR = execSync(`git show origin/${prDetails.sourceRefName}:"${normalizedPath}"`, {
@@ -151,18 +151,18 @@ function generateImpactGraph(prDetails, repoRoot) {
         } catch (e) {
           // Archivo no existe en PR (puede estar eliminado)
         }
-        
+
         // Si tenemos ambos contenidos, generar diff
         if (contentMain !== null && contentPR !== null) {
           // Crear archivos temporales para comparar
           const tmpDir = require('os').tmpdir();
           const tmpMain = path.join(tmpDir, `gitbrancher_main_${Date.now()}.tmp`);
           const tmpPR = path.join(tmpDir, `gitbrancher_pr_${Date.now()}.tmp`);
-          
+
           try {
             fs.writeFileSync(tmpMain, contentMain);
             fs.writeFileSync(tmpPR, contentPR);
-            
+
             // Generar diff usando git diff --no-index
             diff = execSync(`git diff --no-index "${tmpMain}" "${tmpPR}"`, {
               cwd: repoRoot,
@@ -170,11 +170,11 @@ function generateImpactGraph(prDetails, repoRoot) {
               maxBuffer: 1024 * 1024 * 5,
               stdio: ['pipe', 'pipe', 'ignore']
             }).trim();
-            
+
             // Limpiar archivos temporales
             fs.unlinkSync(tmpMain);
             fs.unlinkSync(tmpPR);
-            
+
             // Reemplazar nombres de archivos temporales por el path real en el diff
             if (diff) {
               diff = diff
@@ -183,11 +183,11 @@ function generateImpactGraph(prDetails, repoRoot) {
             }
           } catch (e) {
             // Limpiar archivos temporales si existen
-            try { fs.unlinkSync(tmpMain); } catch {}
-            try { fs.unlinkSync(tmpPR); } catch {}
+            try { fs.unlinkSync(tmpMain); } catch { }
+            try { fs.unlinkSync(tmpPR); } catch { }
           }
         }
-        
+
         // Si no se pudo obtener con el método anterior, intentar estrategias alternativas
         if (!diff) {
           const strategies = [
@@ -195,7 +195,7 @@ function generateImpactGraph(prDetails, repoRoot) {
             `git diff origin/${mainBranch}..origin/${prDetails.sourceRefName} -- "${normalizedPath}"`,
             `git diff origin/${prDetails.targetRefName}...origin/${prDetails.sourceRefName} -- "${normalizedPath}"`,
           ];
-          
+
           for (const cmd of strategies) {
             try {
               const result = execSync(cmd, {
@@ -205,7 +205,7 @@ function generateImpactGraph(prDetails, repoRoot) {
                 stdio: ['pipe', 'pipe', 'ignore'],
                 timeout: 3000
               }).trim();
-              
+
               if (result && result.length > 0) {
                 diff = result;
                 break;
@@ -219,7 +219,7 @@ function generateImpactGraph(prDetails, repoRoot) {
         // Si falla, continuar sin diff
       }
     }
-    
+
     return {
       id: file.path,
       label: path.basename(file.path),
@@ -696,16 +696,16 @@ function generateVisualization(graph, htmlFile) {
     </div>
 
     <div class="details" id="node-info">
-      ${graph.meta.aiAnalysis && graph.meta.aiAnalysis.prSummary ? 
-        '<div class="file-card ai-analysis">' +
-        '<div class="ai-header">' +
-          '<svg style="width:20px;height:20px;margin-right:8px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>' +
-          'Análisis AI del PR' +
-        '</div>' +
-        '<div class="ai-content">' +
-          '<div class="ai-text" style="white-space: pre-wrap;">' + graph.meta.aiAnalysis.prSummary.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' +
-        '</div>' +
-      '</div>'
+      ${graph.meta.aiAnalysis && graph.meta.aiAnalysis.prSummary ?
+      `<div class="file-card ai-analysis">
+        <div class="ai-header">
+          <svg style="width:20px;height:20px;margin-right:8px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+          Análisis AI del PR
+        </div>
+        <div class="ai-content">
+          <div class="ai-text" style="white-space: pre-wrap;">${graph.meta.aiAnalysis.prSummary.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}</div>
+        </div>
+      </div>`
       : ''}
       <div class="empty">
         <div style="font-size:64px; opacity:0.3; margin-bottom:16px;">🎯</div>
@@ -715,8 +715,12 @@ function generateVisualization(graph, htmlFile) {
     </div>
   </div>
 
+  <script id="graph-data-b64" type="text/plain">${Buffer.from(JSON.stringify(graph)).toString('base64')}</script>
+
   <script>
-    const graphData = JSON.parse(${JSON.stringify(JSON.stringify(graph))});
+    // Decodificar datos desde Base64 para evitar errores de sintaxis por caracteres especiales
+    const b64Data = document.getElementById('graph-data-b64').textContent;
+    const graphData = JSON.parse(atob(b64Data));
 
     const elements = [
       ...graphData.nodes.map(n => ({ data: { id: n.id, label: n.label, modified: n.modified, status: n.status, diff: n.diff } })),
@@ -728,8 +732,8 @@ function generateVisualization(graph, htmlFile) {
       elements,
       style: [
         { selector: 'node', style: { 'background-color': '#e1e4e8', 'label': 'data(label)', 'color': '#24292f', 'text-valign': 'center', 'font-size': 12, 'width': 44, 'height': 44 } },
-        { selector: 'node[modified = true]', style: { 'background-color': '#cf222e' } },
-        { selector: 'node[modified = false]', style: { 'background-color': '#9a6700' } },
+        { selector: 'node[modified="true"]', style: { 'background-color': '#cf222e' } },
+        { selector: 'node[modified="false"]', style: { 'background-color': '#9a6700' } },
         { selector: 'edge', style: { 'width': 1.5, 'line-color': '#d0d7de', 'target-arrow-color': '#d0d7de', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } },
         { selector: 'node:selected, .highlighted', style: { 'background-color': '#0969da', 'border-width': 3, 'border-color': '#1f6feb' } },
         { selector: '.highlighted', style: { 'line-color': '#0969da', 'target-arrow-color': '#0969da' } },
@@ -764,55 +768,81 @@ function generateVisualization(graph, htmlFile) {
 
     function applyFilter() {
       cy.elements().removeClass('dimmed');
-      if (currentFilter === 'modified') cy.nodes('[modified = false]').addClass('dimmed');
-      if (currentFilter === 'affected') cy.nodes('[modified = true]').addClass('dimmed');
+      if (currentFilter === 'modified') cy.nodes('[modified="false"]').addClass('dimmed');
+      if (currentFilter === 'affected') cy.nodes('[modified="true"]').addClass('dimmed');
     }
 
     cy.on('tap', 'node', function(e) {
       const node = e.target;
       const data = node.data();
-      const full = graphData.nodes.find(n => n.id === data.id);
-
+      
       cy.elements().removeClass('highlighted dimmed');
       node.addClass('highlighted');
       node.connectedEdges().addClass('highlighted');
       node.neighborhood('node').addClass('highlighted');
       applyFilter();
 
-      let html = '<div class="file-card"><div class="file-header">' +
-        '<div class="file-title">' + data.label + ' ' + (data.modified ? '<fluent-badge appearance="filled" color="danger">Modificado</fluent-badge>' : '<fluent-badge appearance="filled" color="warning">Afectado</fluent-badge>') + '</div>' +
-        '<div class="file-path">' + data.id + '</div>' +
-        '<div class="meta">' +
-          '<div class="meta-item"><div class="meta-label">Entrantes</div><div class="meta-value">' + node.incomers('node').length + '</div></div>' +
-          '<div class="meta-item"><div class="meta-label">Salientes</div><div class="meta-value">' + node.outgoers('node').length + '</div></div>' +
-        '</div></div></div>';
+      const nodeInfo = document.getElementById('node-info');
+      
+      let html = '<div class="file-card">' +
+          '<div class="file-header">' +
+            '<div class="file-title">' +
+              data.label + ' ' + 
+              (data.modified 
+                ? '<fluent-badge appearance="filled" color="danger">Modificado</fluent-badge>' 
+                : '<fluent-badge appearance="filled" color="warning">Afectado</fluent-badge>') +
+            '</div>' +
+            '<div class="file-path">' + data.id + '</div>' +
+            '<div class="meta">' +
+              '<div class="meta-item"><div class="meta-label">Entrantes</div><div class="meta-value">' + node.incomers('node').length + '</div></div>' +
+              '<div class="meta-item"><div class="meta-label">Salientes</div><div class="meta-value">' + node.outgoers('node').length + '</div></div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
 
       if (data.modified) {
-        const incoming = node.incomers('edge').map(e => ({ from: e.source().data('label'), line: e.data('line') }));
-        if (incoming.length) {
-          html += '<div class="file-card"><div class="impact-header">Archivos que serán afectados</div><div class="impact-list">';
-          incoming.forEach(i => html += '<div class="impact-item"><span>' + i.from + '</span><span>' + (i.line ? 'línea ' + i.line : '') + '</span></div>');
-          html += '</div></div>';
+        const incoming = node.incomers('edge').map(function(e) { return { from: e.source().data('label'), line: e.data('line') }; });
+        if (incoming.length > 0) {
+          html += '<div class="file-card">' +
+              '<div class="impact-header">Archivos que serán afectados</div>' +
+              '<div class="impact-list">' +
+                incoming.map(function(i) {
+                  return '<div class="impact-item">' +
+                    '<span>' + i.from + '</span>' +
+                    '<span>' + (i.line ? 'línea ' + i.line : '') + '</span>' +
+                  '</div>';
+                }).join('') +
+              '</div>' +
+            '</div>';
         }
       }
 
-      if (!data.modified) {
-        const outgoing = node.outgoers('edge').map(e => ({ to: e.target().data('label'), line: e.data('line') }));
-        if (outgoing.length) {
-          html += '<div class="file-card"><div class="impact-header">Depende de archivos modificados</div><div class="impact-list">';
-          outgoing.forEach(function(o) {
-            html += '<div class="impact-item"><span>' + o.to + '</span><span>' + (o.line ? 'línea ' + o.line : '') + '</span></div>';
-          });
-          html += '</div></div>';
-        }
+      const outgoingNodes = node.outgoers('edge');
+      if (outgoingNodes.length > 0) {
+        const outgoing = outgoingNodes.map(function(e) { return { to: e.target().data('label'), line: e.data('line') }; });
+        html += '<div class="file-card">' +
+            '<div class="impact-header">Archivos que lo afectan</div>' +
+            '<div class="impact-list">' +
+              outgoing.map(function(o) {
+                return '<div class="impact-item">' +
+                  '<span>' + o.to + '</span>' +
+                  '<span>' + (o.line ? 'línea ' + o.line : '') + '</span>' +
+                '</div>';
+              }).join('') +
+            '</div>' +
+          '</div>';
       }
 
-      if (full && full.diff) {
-        const escaped = full.diff.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        html += '<div class="file-card"><div class="diff-header">' +
-          '<div>Cambios</div>' +
-          '<div><fluent-button appearance="stealth" size="small" data-node-id="' + data.id + '" onclick="copyDiffById(this)">Copiar</fluent-button></div>' +
-          '</div><div class="diff-content"><pre><code class="language-diff">' + escaped + '</code></pre></div></div>';
+      if (data.diff) {
+        html += '<div class="file-card">' +
+            '<div class="diff-header">' +
+              '<span>Cambios</span>' +
+              '<fluent-button appearance="stealth" size="small" onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.textContent)">Copiar</fluent-button>' +
+            '</div>' +
+            '<div class="diff-content">' +
+              '<pre><code class="language-diff">' + data.diff.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>' +
+            '</div>' +
+          '</div>';
       }
 
       // Mostrar análisis AI si está disponible
@@ -877,26 +907,26 @@ function generateVisualization(graph, htmlFile) {
  */
 function exportToMermaid(graph) {
   let mermaid = 'graph TD\n';
-  
+
   graph.nodes.forEach(node => {
     const style = node.modified ? ':::modified' : ':::affected';
     const id = node.id.replace(/[^a-zA-Z0-9]/g, '_');
     const label = node.label.replace(/"/g, "'");
     mermaid += '  ' + id + '["' + label + '"]' + style + '\n';
   });
-  
+
   mermaid += '\n';
-  
+
   graph.edges.forEach(edge => {
     const fromId = edge.from.replace(/[^a-zA-Z0-9]/g, '_');
     const toId = edge.to.replace(/[^a-zA-Z0-9]/g, '_');
     mermaid += '  ' + fromId + ' --> ' + toId + '\n';
   });
-  
+
   mermaid += '\n';
   mermaid += 'classDef modified fill:#f85149,stroke:#da3633,color:#fff\n';
   mermaid += 'classDef affected fill:#d29922,stroke:#bb8009,color:#fff\n';
-  
+
   return mermaid;
 }
 
@@ -981,7 +1011,7 @@ async function analyzePullRequest(options) {
       try {
         console.log(chalk.cyan('\n[BOT] Analizando con AI...'));
         const analyzer = new aiAnalyzer();
-        
+
         // Análisis general del PR
         const prAnalysis = await analyzer.analyzePRImpact(
           prDetails.title,
@@ -989,13 +1019,13 @@ async function analyzePullRequest(options) {
           impactGraph.nodes.filter(n => !n.modified).map(n => n.id),
           impactGraph.edges
         );
-        
+
         impactGraph.meta.aiAnalysis = {
           prSummary: prAnalysis,
           fileAnalyses: {},
           timestamp: new Date().toISOString()
         };
-        
+
         // Análisis por archivo (solo archivos modificados con diff)
         if (options.aiFull) {
           console.log(chalk.cyan('[NOTE] Analizando archivos modificados...'));
@@ -1006,32 +1036,43 @@ async function analyzePullRequest(options) {
                 analyzer.evaluateCodeQuality(node.id, node.diff),
                 analyzer.suggestImprovements(node.id, node.diff)
               ]);
-              
+
               impactGraph.meta.aiAnalysis.fileAnalyses[node.id] = {
                 changes,
                 quality,
                 improvements
               };
-              
+
               console.log(chalk.gray(`  [OK] ${node.label}`));
             } catch (error) {
               console.log(chalk.yellow(`  [WARNING] ${node.label}: ${error.message}`));
             }
           }
         }
-        
+
         // Guardar el grafo actualizado con análisis AI
         fs.writeFileSync(outputFile, JSON.stringify(impactGraph, null, 2));
         console.log(chalk.green('[OK] Análisis AI completado'));
-        
+
         // Consumir créditos
         const consumeResult = await consumeCredits(amount);
         if (consumeResult.success) {
           console.log(chalk.blue(`[AI] Créditos después: ${consumeResult.credits_used}/${consumeResult.credits_limit}`));
         } else {
           console.log(chalk.yellow('[WARNING] No se pudieron consumir créditos, pero análisis completado.'));
+          if (consumeResult.reason === 'not_logged_in') {
+            console.log(chalk.gray('Razón: No hay sesión activa'));
+          } else if (consumeResult.reason === 'insufficient_credits') {
+            console.log(chalk.gray('Razón: Créditos insuficientes'));
+          } else if (consumeResult.details) {
+            console.log(chalk.gray(`Razón: Error del servidor (${consumeResult.details.status || 'desconocido'})`));
+            if (process.env.DEBUG) {
+              console.log(chalk.gray(`Detalles: ${consumeResult.details.message}`));
+            }
+          }
+          console.log(chalk.gray('Tip: Ejecuta con DEBUG=1 para ver más detalles'));
         }
-        
+
         // Mostrar resumen del análisis
         if (!options.html) {
           console.log(chalk.cyan('\n[ANALYTICS] Análisis de Impacto del PR:\n'));
@@ -1045,17 +1086,17 @@ async function analyzePullRequest(options) {
 
     // Generar visualización HTML si se solicita
     if (options.html) {
-      const htmlFile = options.output 
+      const htmlFile = options.output
         ? outputFile.replace('.json', '.html')
         : path.join(gitbrancherDir, `pr-${options.prId}.html`);
       generateVisualization(impactGraph, htmlFile);
       console.log(chalk.green(`\n✓ Visualización HTML generada en: ${htmlFile}`));
       console.log(chalk.gray('Abre el archivo en tu navegador para explorar el grafo de conocimiento'));
-      
+
       // Abrir automáticamente en el navegador si se solicita
       if (options.open) {
-        const openCommand = process.platform === 'darwin' ? 'open' : 
-                           process.platform === 'win32' ? 'start' : 'xdg-open';
+        const openCommand = process.platform === 'darwin' ? 'open' :
+          process.platform === 'win32' ? 'start' : 'xdg-open';
         try {
           execSync(`${openCommand} ${htmlFile}`, { stdio: 'ignore' });
           console.log(chalk.green('✓ Visualización abierta en el navegador'));
@@ -1082,8 +1123,8 @@ async function analyzePullRequest(options) {
       console.log(chalk.cyan('\n[NOTE] Archivos modificados en el PR:'));
       modifiedNodes.forEach((node) => {
         const changeTypeIcon = node.status === 'add' ? chalk.green('[+]') :
-                              node.status === 'edit' ? chalk.blue('[EDIT]') :
-                              node.status === 'delete' ? chalk.red('[DELETE]') : chalk.gray('[UNKNOWN]');
+          node.status === 'edit' ? chalk.blue('[EDIT]') :
+            node.status === 'delete' ? chalk.red('[DELETE]') : chalk.gray('[UNKNOWN]');
         console.log(`  ${changeTypeIcon} ${node.id}`);
       });
     }

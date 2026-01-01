@@ -1,6 +1,6 @@
 {
   "name": "@livrasand/gitbrancher",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "CLI for creating and analyzing branches and Pull Requests with standardized names, guided flows, and intelligent analysis for modern teams.",
   "bin": {
     "gitbrancher": "./bin/gitbrancher.js"
