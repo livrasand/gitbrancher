@@ -376,3 +376,8 @@ gitbrancher --help
 ---
 
 **GitBrancher** - Standardizing collaborative development, one commit at a time.
+
+*✨ Thanks for visiting **GitBrancher**!*
+
+<img src="https://visitor-badge.laobi.icu/badge?page_id=livrasand.gitbrancher&style=for-the-badge&color=00d4ff" alt="Views">
+
