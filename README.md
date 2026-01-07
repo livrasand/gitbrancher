@@ -16,14 +16,20 @@
   src="https://img.shields.io/badge/GitHub-Coming%20Soon-lightgrey?logo=github"
   alt="GitHub – Coming Soon"/>
 <img
-  src="https://img.shields.io/badge/GitLab-Coming%20Soon-lightgrey?logo=gitlab"
+  src="https://img.shields.io/badge/GitLab-Coming%20Soon-lightgrey?logo=gitlab&logoColor=white"
   alt="GitLab – Coming Soon"/>
-<img
-  src="https://img.shields.io/badge/Jira-Coming%20Soon-lightgrey?logo=jira"
-  alt="Jira – Coming Soon"/>
 <img
   src="https://img.shields.io/badge/Bitbucket-Coming%20Soon-lightgrey?logo=bitbucket"
   alt="Bitbucket – Coming Soon"/>
+<img
+  src="https://img.shields.io/badge/Jira-Coming%20Soon-lightgrey?logo=jira"
+  alt="Jira – Coming Soon"/>
+  <img
+  src="https://img.shields.io/badge/Linear-Coming%20Soon-lightgrey?logo=linear&logoColor=white"
+  alt="Linear – Coming Soon"/>
+<img
+  src="https://img.shields.io/badge/CircleCI-Coming%20Soon-lightgrey?logo=circleci&logoColor=white"
+  alt="CircleCI – Coming Soon"/>
 </p>
 
 # GitBrancher
