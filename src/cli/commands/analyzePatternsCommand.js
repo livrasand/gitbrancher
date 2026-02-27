@@ -1,17 +1,18 @@
 const chalk = require('chalk');
 const { getAllBranches } = require('../../git/gitService');
 const { DEFAULT_BRANCH_TYPES } = require('../constants/branchTypes');
+const { createSpinner } = require('../display/spinner');
 
 /**
  * Analiza el historial de ramas para detectar patrones de uso reales en el equipo.
  * Calcula porcentajes por tipo de rama y muestra un resumen.
  */
 async function analyzeBranchPatterns() {
+  const spinner = createSpinner('Consultando historial de ramas (incluyendo remotas)...');
   try {
-    console.log(chalk.cyan('\nConsultando historial de ramas (incluyendo remotas)...'));
-
     // Obtenemos ramas realizando un prune para ignorar las ya eliminadas en el remoto
     const branches = await getAllBranches({ prune: true });
+    spinner.succeed('Historial de ramas obtenido');
 
     const branchCounts = {};
     let totalStandardBranches = 0;
@@ -63,7 +64,7 @@ async function analyzeBranchPatterns() {
     console.log(''); // Espacio final
 
   } catch (error) {
-    console.error(chalk.red(`\nError al analizar patrones de ramas: ${error.message}`));
+    spinner.fail(`Error al analizar patrones de ramas: ${error.message}`);
     process.exitCode = 1;
   }
 }

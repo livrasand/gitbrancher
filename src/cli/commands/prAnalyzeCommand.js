@@ -10,6 +10,7 @@ const { isLoggedIn } = require('../../utils/auth');
 const { getCredits, consumeCredits } = require('../../utils/auth');
 const pkg = require('../../../package.json');
 const os = require('os');
+const { createSpinner } = require('../display/spinner');
 
 /**
  * Obtiene el nombre del repositorio desde el remote origin de Git
@@ -937,6 +938,7 @@ function exportToMermaid(graph) {
  * @param {string} options.output - Archivo de salida (por defecto: graph.json)
  */
 async function analyzePullRequest(options) {
+  let spinner;
   try {
     const azureConfig = await getEffectiveAzureConfig();
 
@@ -948,7 +950,7 @@ async function analyzePullRequest(options) {
 
     const repoInfo = getRepositoryInfo();
 
-    console.log(chalk.cyan(`\nAnalizando PR #${options.prId} en ${repoInfo.organization}/${repoInfo.project}/${repoInfo.repository}...`));
+    spinner = createSpinner(`Analizando PR #${options.prId} en ${repoInfo.organization}/${repoInfo.project}/${repoInfo.repository}...`);
 
     const prDetails = await fetchPullRequestDetails({
       organization: repoInfo.organization,
@@ -958,6 +960,8 @@ async function analyzePullRequest(options) {
       pullRequestId: options.prId
     });
 
+    spinner.succeed(`PR #${options.prId} cargado: ${prDetails.title}`);
+
     console.log(chalk.blue(`PR: ${prDetails.title}`));
     console.log(chalk.gray(`Estado: ${prDetails.status} | Creado por: ${prDetails.createdBy}`));
     console.log(chalk.gray(`Rama: ${prDetails.sourceRefName} → ${prDetails.targetRefName}`));
@@ -966,9 +970,9 @@ async function analyzePullRequest(options) {
     const repoRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf-8' }).trim();
 
     // Generar grafo de impacto
+    spinner = createSpinner('Analizando dependencias y generando grafo de impacto...');
     const impactGraph = generateImpactGraph(prDetails, repoRoot);
-
-    console.log(chalk.cyan(`\nAnalizando dependencias...`));
+    spinner.succeed('Grafo de impacto generado');
 
     // Crear directorio .gitbrancher si no existe
     const gitbrancherDir = path.join(repoRoot, '.gitbrancher');
@@ -1009,7 +1013,7 @@ async function analyzePullRequest(options) {
       console.log(chalk.blue(`[AI] Créditos antes: ${credits.credits_used}/${credits.credits_limit}`));
 
       try {
-        console.log(chalk.cyan('\n[BOT] Analizando con AI...'));
+        spinner = createSpinner('[BOT] Analizando impacto con AI...');
         const analyzer = new aiAnalyzer();
 
         // Análisis general del PR
@@ -1028,9 +1032,10 @@ async function analyzePullRequest(options) {
 
         // Análisis por archivo (solo archivos modificados con diff)
         if (options.aiFull) {
-          console.log(chalk.cyan('[NOTE] Analizando archivos modificados...'));
+          spinner.updateText('[NOTE] Analizando archivos modificados con AI...');
           for (const node of impactGraph.nodes.filter(n => n.modified && n.diff)) {
             try {
+              spinner.updateText(`[AI] Analizando ${node.label}...`);
               const [changes, quality, improvements] = await Promise.all([
                 analyzer.analyzeFileChanges(node.id, node.diff),
                 analyzer.evaluateCodeQuality(node.id, node.diff),
@@ -1052,7 +1057,7 @@ async function analyzePullRequest(options) {
 
         // Guardar el grafo actualizado con análisis AI
         fs.writeFileSync(outputFile, JSON.stringify(impactGraph, null, 2));
-        console.log(chalk.green('[OK] Análisis AI completado'));
+        spinner.succeed('Análisis AI completado');
 
         // Consumir créditos
         const consumeResult = await consumeCredits(amount);
@@ -1142,7 +1147,11 @@ async function analyzePullRequest(options) {
     }
 
   } catch (error) {
-    console.error(chalk.red('\nError:'), error.message);
+    if (spinner) {
+      spinner.fail(`Error: ${error.message}`);
+    } else {
+      console.error(chalk.red('\nError:'), error.message);
+    }
 
     if (error.message.includes('no parece ser un repositorio de Azure DevOps')) {
       console.log(chalk.yellow('\nEste comando solo funciona con repositorios de Azure DevOps.'));

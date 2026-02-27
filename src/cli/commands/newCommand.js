@@ -12,6 +12,7 @@ const { formatBranchName, MAX_SEGMENT_LENGTH } = require('../utils/branchName');
 const { slugifySegment } = require('../utils/textHelpers');
 const { getEffectiveAzureConfig, hasAzureCredentials } = require('../../config/azureConfig');
 const { fetchAssignedWorkItems, inferBranchTypeFromWorkItem } = require('../../integrations/azureDevOpsService');
+const { createSpinner } = require('../display/spinner');
 
 /**
  * Punto de entrada para la creación de ramas.
@@ -87,8 +88,8 @@ async function createNewBranchInteractive({ push } = {}) {
       ]);
 
       if (useAzure) {
+        const spinner = createSpinner('Consultando Azure DevOps...');
         try {
-          console.log(chalk.gray('\nConsultando Azure DevOps...'));
           const items = await fetchAssignedWorkItems({
             organization: azureConfig.organization,
             project: azureConfig.project,
@@ -97,8 +98,9 @@ async function createNewBranchInteractive({ push } = {}) {
           });
 
           if (items.length === 0) {
-            console.log(chalk.yellow('No se encontraron elementos asignados. Continuaremos con flujo manual.'));
+            spinner.info('No se encontraron elementos asignados. Continuaremos con flujo manual.');
           } else {
+            spinner.succeed('Work items obtenidos de Azure DevOps');
             const { workItemId } = await inquirer.prompt([
               {
                 type: 'list',
@@ -115,7 +117,7 @@ async function createNewBranchInteractive({ push } = {}) {
             inferredTypeFromAzure = selectedWorkItem ? inferBranchTypeFromWorkItem(selectedWorkItem) : null;
           }
         } catch (error) {
-          console.error(chalk.red('\nNo fue posible consumir Azure DevOps:'), chalk.red(error.message));
+          spinner.fail(`No fue posible consumir Azure DevOps: ${error.message}`);
           console.error(chalk.gray('Continuaremos con el flujo manual.'));
         }
       }

@@ -2,6 +2,7 @@ const { execSync } = require('child_process');
 const chalk = require('chalk');
 const { fetchPullRequests } = require('../../integrations/azureDevOpsService');
 const { getEffectiveAzureConfig } = require('../../config/azureConfig');
+const { createSpinner } = require('../display/spinner');
 
 /**
  * Obtiene el nombre del repositorio desde el remote origin de Git
@@ -49,6 +50,7 @@ function getRepositoryInfo() {
  * @param {string} options.number - Número de PRs a mostrar
  */
 async function listPullRequests(options) {
+  let spinner;
   try {
     const azureConfig = await getEffectiveAzureConfig();
 
@@ -60,7 +62,7 @@ async function listPullRequests(options) {
 
     const repoInfo = getRepositoryInfo();
 
-  console.log(chalk.cyan(`\nObteniendo Pull Requests de ${repoInfo.organization}/${repoInfo.project}/${repoInfo.repository}...`));
+  spinner = createSpinner(`Obteniendo Pull Requests de ${repoInfo.organization}/${repoInfo.project}/${repoInfo.repository}...`);
 
   const prs = await fetchPullRequests({
     organization: repoInfo.organization,
@@ -72,11 +74,11 @@ async function listPullRequests(options) {
   });
 
   if (prs.length === 0) {
-    console.log(chalk.yellow('No se encontraron Pull Requests con los criterios especificados.'));
+    spinner.info('No se encontraron Pull Requests con los criterios especificados.');
     return;
   }
 
-  console.log(chalk.green(`\nEncontrados ${prs.length} Pull Request(s):\n`));
+  spinner.succeed(`Encontrados ${prs.length} Pull Request(s):\n`);
 
   prs.forEach((pr, index) => {
     const statusColor = pr.status === 'active' ? chalk.green : pr.status === 'completed' ? chalk.blue : chalk.gray;
@@ -90,7 +92,11 @@ async function listPullRequests(options) {
     console.log('');
   });
   } catch (error) {
-    console.error(chalk.red('\nError:'), error.message);
+    if (spinner) {
+      spinner.fail(`Error: ${error.message}`);
+    } else {
+      console.error(chalk.red('\nError:'), error.message);
+    }
     
     if (error.message.includes('no parece ser un repositorio de Azure DevOps')) {
       console.log(chalk.yellow('\nEste comando solo funciona con repositorios de Azure DevOps.'));
