@@ -52,8 +52,13 @@ program
   .command('analyze-patterns')
   .description('Analiza el historial de ramas para detectar patrones de uso en el equipo.')
   .action(async () => {
-    printBanner();
-    await analyzeBranchPatterns();
+    try {
+      printBanner();
+      await analyzeBranchPatterns();
+    } catch (error) {
+      console.error(chalk.red(`\nError: ${error.message}`));
+      process.exitCode = 1;
+    }
   });
 
 program
