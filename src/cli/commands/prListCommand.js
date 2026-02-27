@@ -2,6 +2,7 @@ const { execSync } = require('child_process');
 const chalk = require('chalk');
 const { fetchPullRequests } = require('../../integrations/azureDevOpsService');
 const { getEffectiveAzureConfig } = require('../../config/azureConfig');
+const { createSpinner } = require('../display/spinner');
 
 /**
  * Obtiene el nombre del repositorio desde el remote origin de Git
@@ -60,35 +61,35 @@ async function listPullRequests(options) {
 
     const repoInfo = getRepositoryInfo();
 
-  console.log(chalk.cyan(`\nObteniendo Pull Requests de ${repoInfo.organization}/${repoInfo.project}/${repoInfo.repository}...`));
+    const spinner = createSpinner(`Obteniendo Pull Requests de ${repoInfo.repository}...`);
 
-  const prs = await fetchPullRequests({
-    organization: repoInfo.organization,
-    project: repoInfo.project,
-    repository: repoInfo.repository,
-    pat: azureConfig.pat,
-    status: options.status,
-    top: parseInt(options.number, 10)
-  });
+    const prs = await fetchPullRequests({
+      organization: repoInfo.organization,
+      project: repoInfo.project,
+      repository: repoInfo.repository,
+      pat: azureConfig.pat,
+      status: options.status,
+      top: parseInt(options.number, 10)
+    });
 
-  if (prs.length === 0) {
-    console.log(chalk.yellow('No se encontraron Pull Requests con los criterios especificados.'));
-    return;
-  }
-
-  console.log(chalk.green(`\nEncontrados ${prs.length} Pull Request(s):\n`));
-
-  prs.forEach((pr, index) => {
-    const statusColor = pr.status === 'active' ? chalk.green : pr.status === 'completed' ? chalk.blue : chalk.gray;
-    console.log(`${chalk.bold(index + 1)}. ${chalk.bold(pr.title)}`);
-    console.log(`   ${chalk.gray('ID:')} ${pr.id} | ${chalk.gray('Estado:')} ${statusColor(pr.status)} | ${chalk.gray('Creado por:')} ${pr.createdBy}`);
-    console.log(`   ${chalk.gray('Rama:')} ${pr.sourceRefName} → ${pr.targetRefName}`);
-    console.log(`   ${chalk.gray('URL:')} ${chalk.blue.underline(pr.url)}`);
-    if (pr.description) {
-      console.log(`   ${chalk.gray('Descripción:')} ${pr.description.substring(0, 100)}${pr.description.length > 100 ? '...' : ''}`);
+    if (prs.length === 0) {
+      spinner.info('No se encontraron Pull Requests con los criterios especificados.');
+      return;
     }
-    console.log('');
-  });
+
+    spinner.succeed(`Encontrados ${prs.length} Pull Request(s):\n`);
+
+    prs.forEach((pr, index) => {
+      const statusColor = pr.status === 'active' ? chalk.green : pr.status === 'completed' ? chalk.blue : chalk.gray;
+      console.log(`${chalk.bold(index + 1)}. ${chalk.bold(pr.title)}`);
+      console.log(`   ${chalk.gray('ID:')} ${pr.id} | ${chalk.gray('Estado:')} ${statusColor(pr.status)} | ${chalk.gray('Creado por:')} ${pr.createdBy}`);
+      console.log(`   ${chalk.gray('Rama:')} ${pr.sourceRefName} → ${pr.targetRefName}`);
+      console.log(`   ${chalk.gray('URL:')} ${chalk.blue.underline(pr.url)}`);
+      if (pr.description) {
+        console.log(`   ${chalk.gray('Descripción:')} ${pr.description.substring(0, 100)}${pr.description.length > 100 ? '...' : ''}`);
+      }
+      console.log('');
+    });
   } catch (error) {
     console.error(chalk.red('\nError:'), error.message);
     

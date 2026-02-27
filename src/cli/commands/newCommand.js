@@ -10,6 +10,7 @@ const { resolveUserAlias, setStoredAlias } = require('../../config/userConfig');
 const { createBranch, pushBranch } = require('../../git/gitService');
 const { formatBranchName, MAX_SEGMENT_LENGTH } = require('../utils/branchName');
 const { slugifySegment } = require('../utils/textHelpers');
+const { createSpinner } = require('../display/spinner');
 const { getEffectiveAzureConfig, hasAzureCredentials } = require('../../config/azureConfig');
 const { fetchAssignedWorkItems, inferBranchTypeFromWorkItem } = require('../../integrations/azureDevOpsService');
 
@@ -87,8 +88,8 @@ async function createNewBranchInteractive({ push } = {}) {
       ]);
 
       if (useAzure) {
+        const azureSpinner = createSpinner('Consultando Azure DevOps...');
         try {
-          console.log(chalk.gray('\nConsultando Azure DevOps...'));
           const items = await fetchAssignedWorkItems({
             organization: azureConfig.organization,
             project: azureConfig.project,
@@ -97,8 +98,9 @@ async function createNewBranchInteractive({ push } = {}) {
           });
 
           if (items.length === 0) {
-            console.log(chalk.yellow('No se encontraron elementos asignados. Continuaremos con flujo manual.'));
+            azureSpinner.info('No se encontraron elementos asignados. Continuaremos con flujo manual.');
           } else {
+            azureSpinner.succeed('Work items obtenidos correctamente.');
             const { workItemId } = await inquirer.prompt([
               {
                 type: 'list',
@@ -115,7 +117,7 @@ async function createNewBranchInteractive({ push } = {}) {
             inferredTypeFromAzure = selectedWorkItem ? inferBranchTypeFromWorkItem(selectedWorkItem) : null;
           }
         } catch (error) {
-          console.error(chalk.red('\nNo fue posible consumir Azure DevOps:'), chalk.red(error.message));
+          azureSpinner.fail(`No fue posible consumir Azure DevOps: ${error.message}`);
           console.error(chalk.gray('Continuaremos con el flujo manual.'));
         }
       }

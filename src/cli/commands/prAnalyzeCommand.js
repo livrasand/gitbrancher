@@ -8,6 +8,7 @@ const { analyzeDependencies } = require('../../utils/dependencyAnalyzer');
 const aiAnalyzer = require('../../utils/aiAnalyzer');
 const { isLoggedIn } = require('../../utils/auth');
 const { getCredits, consumeCredits } = require('../../utils/auth');
+const { createSpinner } = require('../display/spinner');
 const pkg = require('../../../package.json');
 const os = require('os');
 
@@ -948,15 +949,22 @@ async function analyzePullRequest(options) {
 
     const repoInfo = getRepositoryInfo();
 
-    console.log(chalk.cyan(`\nAnalizando PR #${options.prId} en ${repoInfo.organization}/${repoInfo.project}/${repoInfo.repository}...`));
+    const fetchSpinner = createSpinner(`Obteniendo detalles del PR #${options.prId}...`);
 
-    const prDetails = await fetchPullRequestDetails({
-      organization: repoInfo.organization,
-      project: repoInfo.project,
-      repository: repoInfo.repository,
-      pat: azureConfig.pat,
-      pullRequestId: options.prId
-    });
+    let prDetails;
+    try {
+      prDetails = await fetchPullRequestDetails({
+        organization: repoInfo.organization,
+        project: repoInfo.project,
+        repository: repoInfo.repository,
+        pat: azureConfig.pat,
+        pullRequestId: options.prId
+      });
+      fetchSpinner.succeed(`PR obtenido: ${prDetails.title}`);
+    } catch (error) {
+      fetchSpinner.fail(`No se pudo obtener el PR: ${error.message}`);
+      throw error;
+    }
 
     console.log(chalk.blue(`PR: ${prDetails.title}`));
     console.log(chalk.gray(`Estado: ${prDetails.status} | Creado por: ${prDetails.createdBy}`));
@@ -966,9 +974,9 @@ async function analyzePullRequest(options) {
     const repoRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf-8' }).trim();
 
     // Generar grafo de impacto
+    const graphSpinner = createSpinner('Generando grafo de impacto y analizando dependencias...');
     const impactGraph = generateImpactGraph(prDetails, repoRoot);
-
-    console.log(chalk.cyan(`\nAnalizando dependencias...`));
+    graphSpinner.succeed('Grafo de impacto generado correctamente.');
 
     // Crear directorio .gitbrancher si no existe
     const gitbrancherDir = path.join(repoRoot, '.gitbrancher');
@@ -1008,8 +1016,8 @@ async function analyzePullRequest(options) {
 
       console.log(chalk.blue(`[AI] Créditos antes: ${credits.credits_used}/${credits.credits_limit}`));
 
+      let aiSpinner = createSpinner('[BOT] Analizando impacto con AI...');
       try {
-        console.log(chalk.cyan('\n[BOT] Analizando con AI...'));
         const analyzer = new aiAnalyzer();
 
         // Análisis general del PR
@@ -1028,7 +1036,7 @@ async function analyzePullRequest(options) {
 
         // Análisis por archivo (solo archivos modificados con diff)
         if (options.aiFull) {
-          console.log(chalk.cyan('[NOTE] Analizando archivos modificados...'));
+          aiSpinner.text = '[BOT] Analizando archivos modificados con AI...';
           for (const node of impactGraph.nodes.filter(n => n.modified && n.diff)) {
             try {
               const [changes, quality, improvements] = await Promise.all([
@@ -1042,8 +1050,6 @@ async function analyzePullRequest(options) {
                 quality,
                 improvements
               };
-
-              console.log(chalk.gray(`  [OK] ${node.label}`));
             } catch (error) {
               console.log(chalk.yellow(`  [WARNING] ${node.label}: ${error.message}`));
             }
@@ -1052,7 +1058,7 @@ async function analyzePullRequest(options) {
 
         // Guardar el grafo actualizado con análisis AI
         fs.writeFileSync(outputFile, JSON.stringify(impactGraph, null, 2));
-        console.log(chalk.green('[OK] Análisis AI completado'));
+        aiSpinner.succeed('Análisis AI completado.');
 
         // Consumir créditos
         const consumeResult = await consumeCredits(amount);
@@ -1079,7 +1085,7 @@ async function analyzePullRequest(options) {
           console.log(prAnalysis);
         }
       } catch (error) {
-        console.log(chalk.yellow(`\n[WARNING]  No se pudo completar el análisis AI: ${error.message}`));
+        aiSpinner.fail(`No se pudo completar el análisis AI: ${error.message}`);
         console.log(chalk.gray('Verifica tu conexión a internet o intenta más tarde'));
       }
     }

@@ -14,6 +14,7 @@ const { resolveUserAlias, setStoredAlias, clearStoredAlias, getStoredAlias } = r
 const { getEffectiveAzureConfig, setAzureConfig, clearAzureConfig, hasAzureCredentials } = require('../src/config/azureConfig');
 const { listPullRequests } = require('../src/cli/commands/prListCommand');
 const { analyzePullRequest } = require('../src/cli/commands/prAnalyzeCommand');
+const { analyzeBranchPatterns } = require('../src/cli/commands/analyzePatternsCommand');
 
 const registerCommand = require('../src/cli/commands/registerCommand');
 const loginCommand = require('../src/cli/commands/loginCommand');
@@ -41,6 +42,19 @@ program
         printBanner();
       }
       await createNewBranch(options);
+    } catch (error) {
+      console.error(chalk.red(`\nError: ${error.message}`));
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('analyze-patterns')
+  .description('Analiza el historial de ramas para detectar patrones de uso en el equipo.')
+  .action(async () => {
+    try {
+      printBanner();
+      await analyzeBranchPatterns();
     } catch (error) {
       console.error(chalk.red(`\nError: ${error.message}`));
       process.exitCode = 1;
