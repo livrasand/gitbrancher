@@ -133,6 +133,30 @@ async function pushBranch(branchName) {
   }
 }
 
+/**
+ * Obtiene todas las ramas locales y remotas.
+ * @param {Object} options - Opciones para la obtención de ramas.
+ * @param {boolean} options.prune - Si debe realizar un fetch --prune antes de listar (default: false).
+ * @returns {Promise<string[]>} Lista de nombres de todas las ramas.
+ */
+async function getAllBranches(options = { prune: false }) {
+  const git = createGitClient();
+  try {
+    if (options.prune) {
+      try {
+        await git.fetch(['--prune']);
+      } catch (fetchError) {
+        // Si falla el fetch (ej: sin red), continuamos con las ramas cacheadas
+        // pero informamos en consola si fuera necesario.
+      }
+    }
+    const branches = await git.branch(['-a']);
+    return branches.all;
+  } catch (error) {
+    throw new Error(`No fue posible obtener la lista de ramas: ${error.message}`);
+  }
+}
+
 module.exports = {
   createGitClient,
   getGitUserName,
@@ -140,4 +164,5 @@ module.exports = {
   getCurrentBranch,
   pushBranch,
   checkRemoteBranchExists,
+  getAllBranches,
 };
