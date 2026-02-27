@@ -133,6 +133,20 @@ async function pushBranch(branchName) {
   }
 }
 
+/**
+ * Obtiene todas las ramas locales y remotas.
+ * @returns {Promise<string[]>} Lista de nombres de todas las ramas.
+ */
+async function getAllBranches() {
+  const git = createGitClient();
+  try {
+    const branches = await git.branch(['-a']);
+    return branches.all;
+  } catch (error) {
+    throw new Error(`No fue posible obtener la lista de ramas: ${error.message}`);
+  }
+}
+
 module.exports = {
   createGitClient,
   getGitUserName,
@@ -140,4 +154,5 @@ module.exports = {
   getCurrentBranch,
   pushBranch,
   checkRemoteBranchExists,
+  getAllBranches,
 };
